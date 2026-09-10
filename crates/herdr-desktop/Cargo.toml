@@ -1,0 +1,9 @@
+[package]
+name = "herdr-desktop"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Tauri desktop client for herdr (Phase 3 — stub)"
+
+[dependencies]
+herdr-protocol = { path = "../herdr-protocol" }

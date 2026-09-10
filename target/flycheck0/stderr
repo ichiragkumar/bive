@@ -1,0 +1,361 @@
+   0.079362416s  INFO prepare_target{force=false package_id=herdr-cli v0.1.0 (/Users/apple/Projects/bive/crates/herdr-cli) target="herdr"}: cargo::core::compiler::fingerprint: fingerprint error for herdr-cli v0.1.0 (/Users/apple/Projects/bive/crates/herdr-cli)/Check { test: false }/TargetInner { name: "herdr", doc: true, ..: with_path("/Users/apple/Projects/bive/crates/herdr-cli/src/main.rs", Edition2021) }
+   0.079744833s  INFO prepare_target{force=false package_id=herdr-cli v0.1.0 (/Users/apple/Projects/bive/crates/herdr-cli) target="herdr"}: cargo::core::compiler::fingerprint:     err: failed to read `/Users/apple/Projects/bive/target/debug/.fingerprint/herdr-cli-eca752588b431d7b/bin-herdr`
+
+Caused by:
+    No such file or directory (os error 2)
+
+Stack backtrace:
+   0: std::backtrace::Backtrace::create
+   1: std::backtrace::Backtrace::capture
+   2: cargo_util::paths::read_bytes
+   3: cargo_util::paths::read
+   4: cargo::core::compiler::fingerprint::_compare_old_fingerprint
+   5: cargo::core::compiler::fingerprint::prepare_target
+   6: cargo::core::compiler::compile
+   7: <cargo::core::compiler::build_runner::BuildRunner>::compile
+   8: cargo::ops::cargo_compile::compile_ws
+   9: cargo::ops::cargo_compile::compile_with_exec
+  10: cargo::ops::cargo_compile::compile
+  11: cargo::commands::check::exec
+  12: <cargo::cli::Exec>::exec
+  13: cargo::main
+  14: std::sys::backtrace::__rust_begin_short_backtrace::<fn(), ()>
+  15: std::rt::lang_start::<()>::{closure#0}
+  16: std::rt::lang_start_internal
+  17: _main
+   0.105184541s  INFO prepare_target{force=false package_id=herdr-daemon v0.1.0 (/Users/apple/Projects/bive/crates/herdr-daemon) target="herdr_daemon"}: cargo::core::compiler::fingerprint: fingerprint error for herdr-daemon v0.1.0 (/Users/apple/Projects/bive/crates/herdr-daemon)/Check { test: false }/TargetInner { name_inferred: true, ..: lib_target("herdr_daemon", ["lib"], "/Users/apple/Projects/bive/crates/herdr-daemon/src/lib.rs", Edition2021) }
+   0.105309833s  INFO prepare_target{force=false package_id=herdr-daemon v0.1.0 (/Users/apple/Projects/bive/crates/herdr-daemon) target="herdr_daemon"}: cargo::core::compiler::fingerprint:     err: failed to read `/Users/apple/Projects/bive/target/debug/.fingerprint/herdr-daemon-5380d48f48fd34cf/lib-herdr_daemon`
+
+Caused by:
+    No such file or directory (os error 2)
+
+Stack backtrace:
+   0: std::backtrace::Backtrace::create
+   1: std::backtrace::Backtrace::capture
+   2: cargo_util::paths::read_bytes
+   3: cargo_util::paths::read
+   4: cargo::core::compiler::fingerprint::_compare_old_fingerprint
+   5: cargo::core::compiler::fingerprint::prepare_target
+   6: cargo::core::compiler::compile
+   7: cargo::core::compiler::compile
+   8: <cargo::core::compiler::build_runner::BuildRunner>::compile
+   9: cargo::ops::cargo_compile::compile_ws
+  10: cargo::ops::cargo_compile::compile_with_exec
+  11: cargo::ops::cargo_compile::compile
+  12: cargo::commands::check::exec
+  13: <cargo::cli::Exec>::exec
+  14: cargo::main
+  15: std::sys::backtrace::__rust_begin_short_backtrace::<fn(), ()>
+  16: std::rt::lang_start::<()>::{closure#0}
+  17: std::rt::lang_start_internal
+  18: _main
+   0.105646583s  INFO prepare_target{force=false package_id=herdr-protocol v0.1.0 (/Users/apple/Projects/bive/crates/herdr-protocol) target="herdr_protocol"}: cargo::core::compiler::fingerprint: fingerprint error for herdr-protocol v0.1.0 (/Users/apple/Projects/bive/crates/herdr-protocol)/Check { test: false }/TargetInner { name_inferred: true, ..: lib_target("herdr_protocol", ["lib"], "/Users/apple/Projects/bive/crates/herdr-protocol/src/lib.rs", Edition2021) }
+   0.105650166s  INFO prepare_target{force=false package_id=herdr-protocol v0.1.0 (/Users/apple/Projects/bive/crates/herdr-protocol) target="herdr_protocol"}: cargo::core::compiler::fingerprint:     err: failed to read `/Users/apple/Projects/bive/target/debug/.fingerprint/herdr-protocol-de0ef51fd31044f2/lib-herdr_protocol`
+
+Caused by:
+    No such file or directory (os error 2)
+
+Stack backtrace:
+   0: std::backtrace::Backtrace::create
+   1: std::backtrace::Backtrace::capture
+   2: cargo_util::paths::read_bytes
+   3: cargo_util::paths::read
+   4: cargo::core::compiler::fingerprint::_compare_old_fingerprint
+   5: cargo::core::compiler::fingerprint::prepare_target
+   6: cargo::core::compiler::compile
+   7: cargo::core::compiler::compile
+   8: cargo::core::compiler::compile
+   9: <cargo::core::compiler::build_runner::BuildRunner>::compile
+  10: cargo::ops::cargo_compile::compile_ws
+  11: cargo::ops::cargo_compile::compile_with_exec
+  12: cargo::ops::cargo_compile::compile
+  13: cargo::commands::check::exec
+  14: <cargo::cli::Exec>::exec
+  15: cargo::main
+  16: std::sys::backtrace::__rust_begin_short_backtrace::<fn(), ()>
+  17: std::rt::lang_start::<()>::{closure#0}
+  18: std::rt::lang_start_internal
+  19: _main
+   0.114995000s  INFO prepare_target{force=false package_id=herdr-cli v0.1.0 (/Users/apple/Projects/bive/crates/herdr-cli) target="herdr"}: cargo::core::compiler::fingerprint: fingerprint error for herdr-cli v0.1.0 (/Users/apple/Projects/bive/crates/herdr-cli)/Check { test: true }/TargetInner { name: "herdr", doc: true, ..: with_path("/Users/apple/Projects/bive/crates/herdr-cli/src/main.rs", Edition2021) }
+   0.114998833s  INFO prepare_target{force=false package_id=herdr-cli v0.1.0 (/Users/apple/Projects/bive/crates/herdr-cli) target="herdr"}: cargo::core::compiler::fingerprint:     err: failed to read `/Users/apple/Projects/bive/target/debug/.fingerprint/herdr-cli-7e16d64c4591e0c4/test-bin-herdr`
+
+Caused by:
+    No such file or directory (os error 2)
+
+Stack backtrace:
+   0: std::backtrace::Backtrace::create
+   1: std::backtrace::Backtrace::capture
+   2: cargo_util::paths::read_bytes
+   3: cargo_util::paths::read
+   4: cargo::core::compiler::fingerprint::_compare_old_fingerprint
+   5: cargo::core::compiler::fingerprint::prepare_target
+   6: cargo::core::compiler::compile
+   7: <cargo::core::compiler::build_runner::BuildRunner>::compile
+   8: cargo::ops::cargo_compile::compile_ws
+   9: cargo::ops::cargo_compile::compile_with_exec
+  10: cargo::ops::cargo_compile::compile
+  11: cargo::commands::check::exec
+  12: <cargo::cli::Exec>::exec
+  13: cargo::main
+  14: std::sys::backtrace::__rust_begin_short_backtrace::<fn(), ()>
+  15: std::rt::lang_start::<()>::{closure#0}
+  16: std::rt::lang_start_internal
+  17: _main
+   0.117320500s  INFO prepare_target{force=false package_id=herdr-daemon v0.1.0 (/Users/apple/Projects/bive/crates/herdr-daemon) target="herdr_daemon"}: cargo::core::compiler::fingerprint: fingerprint error for herdr-daemon v0.1.0 (/Users/apple/Projects/bive/crates/herdr-daemon)/Check { test: true }/TargetInner { name_inferred: true, ..: lib_target("herdr_daemon", ["lib"], "/Users/apple/Projects/bive/crates/herdr-daemon/src/lib.rs", Edition2021) }
+   0.117324666s  INFO prepare_target{force=false package_id=herdr-daemon v0.1.0 (/Users/apple/Projects/bive/crates/herdr-daemon) target="herdr_daemon"}: cargo::core::compiler::fingerprint:     err: failed to read `/Users/apple/Projects/bive/target/debug/.fingerprint/herdr-daemon-a9a61f4336b5c498/test-lib-herdr_daemon`
+
+Caused by:
+    No such file or directory (os error 2)
+
+Stack backtrace:
+   0: std::backtrace::Backtrace::create
+   1: std::backtrace::Backtrace::capture
+   2: cargo_util::paths::read_bytes
+   3: cargo_util::paths::read
+   4: cargo::core::compiler::fingerprint::_compare_old_fingerprint
+   5: cargo::core::compiler::fingerprint::prepare_target
+   6: cargo::core::compiler::compile
+   7: <cargo::core::compiler::build_runner::BuildRunner>::compile
+   8: cargo::ops::cargo_compile::compile_ws
+   9: cargo::ops::cargo_compile::compile_with_exec
+  10: cargo::ops::cargo_compile::compile
+  11: cargo::commands::check::exec
+  12: <cargo::cli::Exec>::exec
+  13: cargo::main
+  14: std::sys::backtrace::__rust_begin_short_backtrace::<fn(), ()>
+  15: std::rt::lang_start::<()>::{closure#0}
+  16: std::rt::lang_start_internal
+  17: _main
+   0.119113833s  INFO prepare_target{force=false package_id=herdr-desktop v0.1.0 (/Users/apple/Projects/bive/crates/herdr-desktop) target="herdr_desktop"}: cargo::core::compiler::fingerprint: fingerprint error for herdr-desktop v0.1.0 (/Users/apple/Projects/bive/crates/herdr-desktop)/Check { test: false }/TargetInner { name_inferred: true, ..: lib_target("herdr_desktop", ["lib"], "/Users/apple/Projects/bive/crates/herdr-desktop/src/lib.rs", Edition2021) }
+   0.119117708s  INFO prepare_target{force=false package_id=herdr-desktop v0.1.0 (/Users/apple/Projects/bive/crates/herdr-desktop) target="herdr_desktop"}: cargo::core::compiler::fingerprint:     err: failed to read `/Users/apple/Projects/bive/target/debug/.fingerprint/herdr-desktop-1be0516b1cbf77ef/lib-herdr_desktop`
+
+Caused by:
+    No such file or directory (os error 2)
+
+Stack backtrace:
+   0: std::backtrace::Backtrace::create
+   1: std::backtrace::Backtrace::capture
+   2: cargo_util::paths::read_bytes
+   3: cargo_util::paths::read
+   4: cargo::core::compiler::fingerprint::_compare_old_fingerprint
+   5: cargo::core::compiler::fingerprint::prepare_target
+   6: cargo::core::compiler::compile
+   7: <cargo::core::compiler::build_runner::BuildRunner>::compile
+   8: cargo::ops::cargo_compile::compile_ws
+   9: cargo::ops::cargo_compile::compile_with_exec
+  10: cargo::ops::cargo_compile::compile
+  11: cargo::commands::check::exec
+  12: <cargo::cli::Exec>::exec
+  13: cargo::main
+  14: std::sys::backtrace::__rust_begin_short_backtrace::<fn(), ()>
+  15: std::rt::lang_start::<()>::{closure#0}
+  16: std::rt::lang_start_internal
+  17: _main
+   0.119363083s  INFO prepare_target{force=false package_id=herdr-desktop v0.1.0 (/Users/apple/Projects/bive/crates/herdr-desktop) target="herdr_desktop"}: cargo::core::compiler::fingerprint: fingerprint error for herdr-desktop v0.1.0 (/Users/apple/Projects/bive/crates/herdr-desktop)/Check { test: true }/TargetInner { name_inferred: true, ..: lib_target("herdr_desktop", ["lib"], "/Users/apple/Projects/bive/crates/herdr-desktop/src/lib.rs", Edition2021) }
+   0.119366583s  INFO prepare_target{force=false package_id=herdr-desktop v0.1.0 (/Users/apple/Projects/bive/crates/herdr-desktop) target="herdr_desktop"}: cargo::core::compiler::fingerprint:     err: failed to read `/Users/apple/Projects/bive/target/debug/.fingerprint/herdr-desktop-09ae145cd1464151/test-lib-herdr_desktop`
+
+Caused by:
+    No such file or directory (os error 2)
+
+Stack backtrace:
+   0: std::backtrace::Backtrace::create
+   1: std::backtrace::Backtrace::capture
+   2: cargo_util::paths::read_bytes
+   3: cargo_util::paths::read
+   4: cargo::core::compiler::fingerprint::_compare_old_fingerprint
+   5: cargo::core::compiler::fingerprint::prepare_target
+   6: cargo::core::compiler::compile
+   7: <cargo::core::compiler::build_runner::BuildRunner>::compile
+   8: cargo::ops::cargo_compile::compile_ws
+   9: cargo::ops::cargo_compile::compile_with_exec
+  10: cargo::ops::cargo_compile::compile
+  11: cargo::commands::check::exec
+  12: <cargo::cli::Exec>::exec
+  13: cargo::main
+  14: std::sys::backtrace::__rust_begin_short_backtrace::<fn(), ()>
+  15: std::rt::lang_start::<()>::{closure#0}
+  16: std::rt::lang_start_internal
+  17: _main
+   0.119616375s  INFO prepare_target{force=false package_id=herdr-plugin v0.1.0 (/Users/apple/Projects/bive/crates/herdr-plugin) target="herdr_plugin"}: cargo::core::compiler::fingerprint: fingerprint error for herdr-plugin v0.1.0 (/Users/apple/Projects/bive/crates/herdr-plugin)/Check { test: false }/TargetInner { name_inferred: true, ..: lib_target("herdr_plugin", ["lib"], "/Users/apple/Projects/bive/crates/herdr-plugin/src/lib.rs", Edition2021) }
+   0.119619708s  INFO prepare_target{force=false package_id=herdr-plugin v0.1.0 (/Users/apple/Projects/bive/crates/herdr-plugin) target="herdr_plugin"}: cargo::core::compiler::fingerprint:     err: failed to read `/Users/apple/Projects/bive/target/debug/.fingerprint/herdr-plugin-97bb09325120695f/lib-herdr_plugin`
+
+Caused by:
+    No such file or directory (os error 2)
+
+Stack backtrace:
+   0: std::backtrace::Backtrace::create
+   1: std::backtrace::Backtrace::capture
+   2: cargo_util::paths::read_bytes
+   3: cargo_util::paths::read
+   4: cargo::core::compiler::fingerprint::_compare_old_fingerprint
+   5: cargo::core::compiler::fingerprint::prepare_target
+   6: cargo::core::compiler::compile
+   7: <cargo::core::compiler::build_runner::BuildRunner>::compile
+   8: cargo::ops::cargo_compile::compile_ws
+   9: cargo::ops::cargo_compile::compile_with_exec
+  10: cargo::ops::cargo_compile::compile
+  11: cargo::commands::check::exec
+  12: <cargo::cli::Exec>::exec
+  13: cargo::main
+  14: std::sys::backtrace::__rust_begin_short_backtrace::<fn(), ()>
+  15: std::rt::lang_start::<()>::{closure#0}
+  16: std::rt::lang_start_internal
+  17: _main
+   0.119870625s  INFO prepare_target{force=false package_id=herdr-plugin v0.1.0 (/Users/apple/Projects/bive/crates/herdr-plugin) target="herdr_plugin"}: cargo::core::compiler::fingerprint: fingerprint error for herdr-plugin v0.1.0 (/Users/apple/Projects/bive/crates/herdr-plugin)/Check { test: true }/TargetInner { name_inferred: true, ..: lib_target("herdr_plugin", ["lib"], "/Users/apple/Projects/bive/crates/herdr-plugin/src/lib.rs", Edition2021) }
+   0.119873750s  INFO prepare_target{force=false package_id=herdr-plugin v0.1.0 (/Users/apple/Projects/bive/crates/herdr-plugin) target="herdr_plugin"}: cargo::core::compiler::fingerprint:     err: failed to read `/Users/apple/Projects/bive/target/debug/.fingerprint/herdr-plugin-fa0a7faae156c759/test-lib-herdr_plugin`
+
+Caused by:
+    No such file or directory (os error 2)
+
+Stack backtrace:
+   0: std::backtrace::Backtrace::create
+   1: std::backtrace::Backtrace::capture
+   2: cargo_util::paths::read_bytes
+   3: cargo_util::paths::read
+   4: cargo::core::compiler::fingerprint::_compare_old_fingerprint
+   5: cargo::core::compiler::fingerprint::prepare_target
+   6: cargo::core::compiler::compile
+   7: <cargo::core::compiler::build_runner::BuildRunner>::compile
+   8: cargo::ops::cargo_compile::compile_ws
+   9: cargo::ops::cargo_compile::compile_with_exec
+  10: cargo::ops::cargo_compile::compile
+  11: cargo::commands::check::exec
+  12: <cargo::cli::Exec>::exec
+  13: cargo::main
+  14: std::sys::backtrace::__rust_begin_short_backtrace::<fn(), ()>
+  15: std::rt::lang_start::<()>::{closure#0}
+  16: std::rt::lang_start_internal
+  17: _main
+   0.120037000s  INFO prepare_target{force=false package_id=herdr-protocol v0.1.0 (/Users/apple/Projects/bive/crates/herdr-protocol) target="herdr_protocol"}: cargo::core::compiler::fingerprint: fingerprint error for herdr-protocol v0.1.0 (/Users/apple/Projects/bive/crates/herdr-protocol)/Check { test: true }/TargetInner { name_inferred: true, ..: lib_target("herdr_protocol", ["lib"], "/Users/apple/Projects/bive/crates/herdr-protocol/src/lib.rs", Edition2021) }
+   0.120040208s  INFO prepare_target{force=false package_id=herdr-protocol v0.1.0 (/Users/apple/Projects/bive/crates/herdr-protocol) target="herdr_protocol"}: cargo::core::compiler::fingerprint:     err: failed to read `/Users/apple/Projects/bive/target/debug/.fingerprint/herdr-protocol-e2c711f3c64cce54/test-lib-herdr_protocol`
+
+Caused by:
+    No such file or directory (os error 2)
+
+Stack backtrace:
+   0: std::backtrace::Backtrace::create
+   1: std::backtrace::Backtrace::capture
+   2: cargo_util::paths::read_bytes
+   3: cargo_util::paths::read
+   4: cargo::core::compiler::fingerprint::_compare_old_fingerprint
+   5: cargo::core::compiler::fingerprint::prepare_target
+   6: cargo::core::compiler::compile
+   7: <cargo::core::compiler::build_runner::BuildRunner>::compile
+   8: cargo::ops::cargo_compile::compile_ws
+   9: cargo::ops::cargo_compile::compile_with_exec
+  10: cargo::ops::cargo_compile::compile
+  11: cargo::commands::check::exec
+  12: <cargo::cli::Exec>::exec
+  13: cargo::main
+  14: std::sys::backtrace::__rust_begin_short_backtrace::<fn(), ()>
+  15: std::rt::lang_start::<()>::{closure#0}
+  16: std::rt::lang_start_internal
+  17: _main
+   0.120265750s  INFO prepare_target{force=false package_id=herdr-remote v0.1.0 (/Users/apple/Projects/bive/crates/herdr-remote) target="herdr_remote"}: cargo::core::compiler::fingerprint: fingerprint error for herdr-remote v0.1.0 (/Users/apple/Projects/bive/crates/herdr-remote)/Check { test: false }/TargetInner { name_inferred: true, ..: lib_target("herdr_remote", ["lib"], "/Users/apple/Projects/bive/crates/herdr-remote/src/lib.rs", Edition2021) }
+   0.120268583s  INFO prepare_target{force=false package_id=herdr-remote v0.1.0 (/Users/apple/Projects/bive/crates/herdr-remote) target="herdr_remote"}: cargo::core::compiler::fingerprint:     err: failed to read `/Users/apple/Projects/bive/target/debug/.fingerprint/herdr-remote-ae2e0aecb76d43cb/lib-herdr_remote`
+
+Caused by:
+    No such file or directory (os error 2)
+
+Stack backtrace:
+   0: std::backtrace::Backtrace::create
+   1: std::backtrace::Backtrace::capture
+   2: cargo_util::paths::read_bytes
+   3: cargo_util::paths::read
+   4: cargo::core::compiler::fingerprint::_compare_old_fingerprint
+   5: cargo::core::compiler::fingerprint::prepare_target
+   6: cargo::core::compiler::compile
+   7: <cargo::core::compiler::build_runner::BuildRunner>::compile
+   8: cargo::ops::cargo_compile::compile_ws
+   9: cargo::ops::cargo_compile::compile_with_exec
+  10: cargo::ops::cargo_compile::compile
+  11: cargo::commands::check::exec
+  12: <cargo::cli::Exec>::exec
+  13: cargo::main
+  14: std::sys::backtrace::__rust_begin_short_backtrace::<fn(), ()>
+  15: std::rt::lang_start::<()>::{closure#0}
+  16: std::rt::lang_start_internal
+  17: _main
+   0.120546000s  INFO prepare_target{force=false package_id=herdr-remote v0.1.0 (/Users/apple/Projects/bive/crates/herdr-remote) target="herdr_remote"}: cargo::core::compiler::fingerprint: fingerprint error for herdr-remote v0.1.0 (/Users/apple/Projects/bive/crates/herdr-remote)/Check { test: true }/TargetInner { name_inferred: true, ..: lib_target("herdr_remote", ["lib"], "/Users/apple/Projects/bive/crates/herdr-remote/src/lib.rs", Edition2021) }
+   0.120549000s  INFO prepare_target{force=false package_id=herdr-remote v0.1.0 (/Users/apple/Projects/bive/crates/herdr-remote) target="herdr_remote"}: cargo::core::compiler::fingerprint:     err: failed to read `/Users/apple/Projects/bive/target/debug/.fingerprint/herdr-remote-df0920647748bfbf/test-lib-herdr_remote`
+
+Caused by:
+    No such file or directory (os error 2)
+
+Stack backtrace:
+   0: std::backtrace::Backtrace::create
+   1: std::backtrace::Backtrace::capture
+   2: cargo_util::paths::read_bytes
+   3: cargo_util::paths::read
+   4: cargo::core::compiler::fingerprint::_compare_old_fingerprint
+   5: cargo::core::compiler::fingerprint::prepare_target
+   6: cargo::core::compiler::compile
+   7: <cargo::core::compiler::build_runner::BuildRunner>::compile
+   8: cargo::ops::cargo_compile::compile_ws
+   9: cargo::ops::cargo_compile::compile_with_exec
+  10: cargo::ops::cargo_compile::compile
+  11: cargo::commands::check::exec
+  12: <cargo::cli::Exec>::exec
+  13: cargo::main
+  14: std::sys::backtrace::__rust_begin_short_backtrace::<fn(), ()>
+  15: std::rt::lang_start::<()>::{closure#0}
+  16: std::rt::lang_start_internal
+  17: _main
+   0.120775125s  INFO prepare_target{force=false package_id=herdr-tui v0.1.0 (/Users/apple/Projects/bive/crates/herdr-tui) target="herdr-tui"}: cargo::core::compiler::fingerprint: fingerprint error for herdr-tui v0.1.0 (/Users/apple/Projects/bive/crates/herdr-tui)/Check { test: false }/TargetInner { name: "herdr-tui", doc: true, ..: with_path("/Users/apple/Projects/bive/crates/herdr-tui/src/main.rs", Edition2021) }
+   0.120778291s  INFO prepare_target{force=false package_id=herdr-tui v0.1.0 (/Users/apple/Projects/bive/crates/herdr-tui) target="herdr-tui"}: cargo::core::compiler::fingerprint:     err: failed to read `/Users/apple/Projects/bive/target/debug/.fingerprint/herdr-tui-8a25cc7bd09165ec/bin-herdr-tui`
+
+Caused by:
+    No such file or directory (os error 2)
+
+Stack backtrace:
+   0: std::backtrace::Backtrace::create
+   1: std::backtrace::Backtrace::capture
+   2: cargo_util::paths::read_bytes
+   3: cargo_util::paths::read
+   4: cargo::core::compiler::fingerprint::_compare_old_fingerprint
+   5: cargo::core::compiler::fingerprint::prepare_target
+   6: cargo::core::compiler::compile
+   7: <cargo::core::compiler::build_runner::BuildRunner>::compile
+   8: cargo::ops::cargo_compile::compile_ws
+   9: cargo::ops::cargo_compile::compile_with_exec
+  10: cargo::ops::cargo_compile::compile
+  11: cargo::commands::check::exec
+  12: <cargo::cli::Exec>::exec
+  13: cargo::main
+  14: std::sys::backtrace::__rust_begin_short_backtrace::<fn(), ()>
+  15: std::rt::lang_start::<()>::{closure#0}
+  16: std::rt::lang_start_internal
+  17: _main
+   0.121033666s  INFO prepare_target{force=false package_id=herdr-tui v0.1.0 (/Users/apple/Projects/bive/crates/herdr-tui) target="herdr-tui"}: cargo::core::compiler::fingerprint: fingerprint error for herdr-tui v0.1.0 (/Users/apple/Projects/bive/crates/herdr-tui)/Check { test: true }/TargetInner { name: "herdr-tui", doc: true, ..: with_path("/Users/apple/Projects/bive/crates/herdr-tui/src/main.rs", Edition2021) }
+   0.121036458s  INFO prepare_target{force=false package_id=herdr-tui v0.1.0 (/Users/apple/Projects/bive/crates/herdr-tui) target="herdr-tui"}: cargo::core::compiler::fingerprint:     err: failed to read `/Users/apple/Projects/bive/target/debug/.fingerprint/herdr-tui-d091a78fce9714bb/test-bin-herdr-tui`
+
+Caused by:
+    No such file or directory (os error 2)
+
+Stack backtrace:
+   0: std::backtrace::Backtrace::create
+   1: std::backtrace::Backtrace::capture
+   2: cargo_util::paths::read_bytes
+   3: cargo_util::paths::read
+   4: cargo::core::compiler::fingerprint::_compare_old_fingerprint
+   5: cargo::core::compiler::fingerprint::prepare_target
+   6: cargo::core::compiler::compile
+   7: <cargo::core::compiler::build_runner::BuildRunner>::compile
+   8: cargo::ops::cargo_compile::compile_ws
+   9: cargo::ops::cargo_compile::compile_with_exec
+  10: cargo::ops::cargo_compile::compile
+  11: cargo::commands::check::exec
+  12: <cargo::cli::Exec>::exec
+  13: cargo::main
+  14: std::sys::backtrace::__rust_begin_short_backtrace::<fn(), ()>
+  15: std::rt::lang_start::<()>::{closure#0}
+  16: std::rt::lang_start_internal
+  17: _main
+    Checking herdr-protocol v0.1.0 (/Users/apple/Projects/bive/crates/herdr-protocol)
+    Checking herdr-daemon v0.1.0 (/Users/apple/Projects/bive/crates/herdr-daemon)
+    Checking herdr-remote v0.1.0 (/Users/apple/Projects/bive/crates/herdr-remote)
+    Checking herdr-desktop v0.1.0 (/Users/apple/Projects/bive/crates/herdr-desktop)
+    Checking herdr-tui v0.1.0 (/Users/apple/Projects/bive/crates/herdr-tui)
+    Checking herdr-plugin v0.1.0 (/Users/apple/Projects/bive/crates/herdr-plugin)
+    Checking herdr-cli v0.1.0 (/Users/apple/Projects/bive/crates/herdr-cli)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 1.22s

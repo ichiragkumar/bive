@@ -1,0 +1,9 @@
+[package]
+name = "herdr-remote"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "SSH remote bridge for herdr (Phase 4 — stub)"
+
+[dependencies]
+herdr-protocol = { path = "../herdr-protocol" }

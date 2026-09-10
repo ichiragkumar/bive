@@ -1,0 +1,32 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/herdr-protocol",
+    "crates/herdr-daemon",
+    "crates/herdr-cli",
+    "crates/herdr-tui",
+    "crates/herdr-desktop",
+    "crates/herdr-remote",
+    "crates/herdr-plugin",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+
+[workspace.dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+anyhow = "1"
+thiserror = "2"
+tokio = { version = "1", features = ["full"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+portable-pty = "0.8"
+regex = "1"
+clap = { version = "4", features = ["derive"] }
+
+[profile.release]
+lto = true
+codegen-units = 1

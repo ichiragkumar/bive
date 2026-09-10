@@ -1,0 +1,1 @@
+/Users/apple/Projects/bive/target/debug/libherdr_protocol.rlib: /Users/apple/Projects/bive/crates/herdr-protocol/src/codec.rs /Users/apple/Projects/bive/crates/herdr-protocol/src/lib.rs /Users/apple/Projects/bive/crates/herdr-protocol/src/profile.rs /Users/apple/Projects/bive/crates/herdr-protocol/src/socket.rs /Users/apple/Projects/bive/crates/herdr-protocol/src/types.rs

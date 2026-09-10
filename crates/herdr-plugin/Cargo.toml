@@ -1,0 +1,9 @@
+[package]
+name = "herdr-plugin"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Plugin API for herdr (Phase 5 — stub)"
+
+[dependencies]
+herdr-protocol = { path = "../herdr-protocol" }

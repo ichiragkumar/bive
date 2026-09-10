@@ -1,0 +1,17 @@
+[package]
+name = "herdr-protocol"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Wire types, NDJSON codec and agent profiles shared by all herdr clients and the daemon"
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
+
+[dev-dependencies]
+regex = { workspace = true }

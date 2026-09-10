@@ -1,0 +1,9 @@
+[package]
+name = "herdr-tui"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Ratatui terminal client for herdr (Phase 2 — stub)"
+
+[dependencies]
+herdr-protocol = { path = "../herdr-protocol" }

@@ -1,0 +1,20 @@
+[package]
+name = "herdr-daemon"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Core herdr engine: PTY supervisor, state inference, event bus, IPC server"
+
+[dependencies]
+herdr-protocol = { path = "../herdr-protocol" }
+tokio = { workspace = true }
+portable-pty = { workspace = true }
+serde_json = { workspace = true }
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+regex = { workspace = true }
+libc = "0.2"
+
+[dev-dependencies]
+tempfile = "3"

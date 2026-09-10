@@ -1,0 +1,20 @@
+[package]
+name = "herdr-cli"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "herdr — unified agent runtime control CLI"
+
+[[bin]]
+name = "herdr"
+path = "src/main.rs"
+
+[dependencies]
+herdr-protocol = { path = "../herdr-protocol" }
+herdr-daemon = { path = "../herdr-daemon" }
+tokio = { workspace = true }
+serde_json = { workspace = true }
+anyhow = { workspace = true }
+clap = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
