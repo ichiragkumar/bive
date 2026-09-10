@@ -24,13 +24,6 @@ pub enum Mode {
     Normal,
     SendInput,
     ConfirmKill,
-    ConfirmQuit,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Modal {
-    None,
-    Quit,
 }
 
 /// Everything the UI needs for one agent.
@@ -53,7 +46,6 @@ pub struct App {
     pub order: Vec<String>,
     pub selected: usize,
     pub mode: Mode,
-    pub modal: Modal,
     pub focus: Focus,
     pub follow: bool,
     pub scroll_line: usize,
@@ -61,7 +53,6 @@ pub struct App {
     pub input: String,
     pub connection_state: ConnState,
     pub should_quit: bool,
-    pub exit_message: Option<String>,
     /// A client command the main loop should issue (set by handle_key).
     pub request_needed: Option<ClientCommand>,
     /// Status line flash message (e.g. "killed abc").
@@ -85,14 +76,12 @@ impl App {
             order: Vec::new(),
             selected: 0,
             mode: Mode::Normal,
-            modal: Modal::None,
             focus: Focus::Fleet,
             follow: true,
             scroll_line: 0,
             input: String::new(),
             connection_state: ConnState::Connected,
             should_quit: false,
-            exit_message: None,
             request_needed: None,
             flash: None,
             pending_selection: None,
@@ -254,7 +243,10 @@ impl App {
         match self.mode {
             Mode::SendInput => {
                 match key.code {
-                    KeyCode::Esc => self.mode = Mode::Normal,
+                    KeyCode::Esc => {
+                        self.input.clear();
+                        self.mode = Mode::Normal;
+                    }
                     KeyCode::Enter => {
                         let text = self.input.clone();
                         self.input.clear();
@@ -283,16 +275,6 @@ impl App {
                             self.request_needed = Some(ClientCommand::Kill { agent_id: id.clone() });
                             self.flash_now(format!("killing {id}…"));
                         }
-                    }
-                    _ => {}
-                }
-                return pending;
-            }
-            Mode::ConfirmQuit => {
-                self.mode = Mode::Normal;
-                match key.code {
-                    KeyCode::Char('y') | KeyCode::Char('Y') => {
-                        self.should_quit = true;
                     }
                     _ => {}
                 }
@@ -359,8 +341,11 @@ impl App {
     fn page_scroll(&mut self, direction: i32) {
         // Pages over logical lines; exact rows depend on pane height (render-time).
         self.follow = false;
-        self.scroll_line = (self.scroll_line as i64 + direction as i64 * 20)
-            .clamp(0, usize::MAX as i64) as usize;
+        if direction < 0 {
+            self.scroll_line = self.scroll_line.saturating_sub(20);
+        } else {
+            self.scroll_line = self.scroll_line.saturating_add(20);
+        }
     }
 }
 
@@ -391,6 +376,7 @@ fn is_state_upgrade(old: &AgentState, new: &AgentState) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crossterm::event::KeyModifiers;
 
     fn info(id: &str, state: AgentState) -> AgentInfo {
         AgentInfo {
@@ -542,17 +528,15 @@ mod tests {
         for ch in "echo hi".chars() {
             app.handle_key(key(KeyCode::Char(ch)));
         }
-        app.handle_key(key(KeyCode::Enter));
+        assert_eq!(app.input, "echo hi");
+        let pending = app.handle_key(key(KeyCode::Enter));
         assert_eq!(app.mode, Mode::Normal);
-        // The request is routed via request_needed.
-        match app.request_needed.take() {
-            Some(ClientCommand::SendInput { agent_id, text, raw }) => {
-                assert_eq!(agent_id, "a");
-                assert_eq!(text, "echo hi");
-                assert!(!raw);
-            }
-            other => panic!("expected SendInput, got {other:?}"),
-        }
+        // Submitted lines come back as pending stdin for the main loop to send.
+        assert_eq!(pending.len(), 1);
+        assert_eq!(pending[0].agent_id, "a");
+        assert_eq!(pending[0].text, "echo hi");
+        assert!(!pending[0].raw);
+        assert!(app.request_needed.is_none());
     }
 
     #[test]
@@ -597,8 +581,10 @@ mod tests {
         assert!(!app.follow);
         app.handle_key(key(KeyCode::Char('f')));
         assert!(app.follow);
-        app.handle_key(key(KeyCode::PageDown));
+        app.handle_key(key(KeyCode::PageUp));
         assert!(!app.follow);
+        assert_eq!(app.scroll_line, 0); // saturating: cannot go negative
+        app.handle_key(key(KeyCode::PageDown));
         assert_eq!(app.scroll_line, 20);
         app.handle_key(key(KeyCode::Char('G')));
         assert!(app.follow);

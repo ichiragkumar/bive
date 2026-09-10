@@ -110,14 +110,13 @@ fn backfill_selected(app: &mut App, client: &HerdrClient) {
     let Some(id) = app.selected_id().map(str::to_string) else {
         return;
     };
-    match client.request(ClientCommand::Logs {
+    if let Ok(resp) = client.request(ClientCommand::Logs {
         agent_id: id,
         max_bytes: 64 * 1024,
     }) {
-        Ok(resp) => app.apply_response(resp),
-        // A missing agent between list and logs is harmless.
-        Err(_) => {}
+        app.apply_response(resp);
     }
+    // A missing agent between list and logs is harmless.
 }
 
 /// Poll crossterm for key events with a 50 ms timeout; returns all keys seen.

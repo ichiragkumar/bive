@@ -20,22 +20,23 @@ pub struct StyledLine {
 }
 
 impl StyledLine {
-    pub fn plain(content: impl Into<String>) -> Self {
-        Self {
-            spans: vec![Span { content: content.into(), style: Style::default() }],
-        }
-    }
-
     pub fn text(&self) -> String {
         self.spans.iter().map(|s| s.content.as_str()).collect()
     }
 }
 
-/// Interior mutable parser that tolerates split escape sequences.
+/// Interior mutable parser that tolerates split escape sequences and keeps
+/// SGR style state across `feed()` calls (like a real terminal).
 #[derive(Debug, Default)]
 pub struct AnsiLineParser {
-    /// Carry: bytes of an unfinished escape sequence.
+    /// Carry: bytes of an unfinished escape sequence or UTF-8 scalar.
     carry: Vec<u8>,
+    /// Current (possibly still-open) line being built.
+    cur: LineBuilder,
+    /// A `\r` fell at the end of the last chunk: whether it was a line ending
+    /// (`\r\n` split across feeds) or a lone carriage return is decided by the
+    /// first byte of the next feed.
+    pending_cr: bool,
 }
 
 impl AnsiLineParser {
@@ -44,14 +45,23 @@ impl AnsiLineParser {
     }
 
     /// Feed a raw chunk (possibly containing many lines and partial escapes);
-    /// returns completed styled lines. Call [`finish_line`](Self::finish_line)
-    /// when the stream ends to flush the trailing partial line.
+    /// returns *completed* styled lines. A trailing chunk without `\n` stays
+    /// pending inside the parser and is completed by a later feed.
     pub fn feed(&mut self, raw: &str) -> Vec<StyledLine> {
         let mut bytes = std::mem::take(&mut self.carry);
         bytes.extend_from_slice(raw.as_bytes());
 
+        // Resolve a `\r` that fell at the end of the previous chunk.
+        if self.pending_cr && !bytes.is_empty() {
+            self.pending_cr = false;
+            if bytes[0] != b'\n' {
+                // It was a lone CR (progress-bar style): restart the line.
+                self.cur.cr();
+            }
+            // else: it was `\r\n` — the `\n` below closes the line normally.
+        }
+
         let mut lines = Vec::new();
-        let mut cur = LineBuilder::default();
         let mut i = 0usize;
         while i < bytes.len() {
             match bytes[i] {
@@ -60,7 +70,7 @@ impl AnsiLineParser {
                     match consume_escape(&bytes[i..]) {
                         Some((sgr, used)) => {
                             if let Some(style_delta) = sgr {
-                                cur.apply_sgr(&style_delta);
+                                self.cur.apply_sgr(&style_delta);
                             }
                             i += used;
                             continue;
@@ -73,12 +83,20 @@ impl AnsiLineParser {
                     }
                 }
                 b'\n' => {
-                    lines.push(cur.finish());
+                    lines.push(self.cur.finish_line());
                     i += 1;
                 }
                 b'\r' => {
-                    // Simple strategy: carriage return overwrites from col 0.
-                    cur.cr();
+                    // `\r\n` is a normal line ending — skip the `\r` and let the
+                    // `\n` close the line. A *lone* `\r` is a progress-bar
+                    // carriage return: restart the line at column 0. When `\r`
+                    // is the chunk's last byte we cannot look ahead yet, so the
+                    // decision defers to the next feed via `pending_cr`.
+                    match bytes.get(i + 1) {
+                        Some(b'\n') => {}
+                        Some(_) => self.cur.cr(),
+                        None => self.pending_cr = true,
+                    }
                     i += 1;
                 }
                 _ => {
@@ -86,7 +104,7 @@ impl AnsiLineParser {
                     let s = decode_char(&bytes[i..]);
                     match s {
                         Some((ch, used)) => {
-                            cur.push_char(ch);
+                            self.cur.push_char(ch);
                             i += used;
                         }
                         None => {
@@ -98,23 +116,7 @@ impl AnsiLineParser {
                 }
             }
         }
-        if self.carry.is_empty() {
-            lines.push(cur.finish_partial());
-        } else {
-            lines.push(cur.finish_partial());
-        }
         lines
-    }
-
-    /// Flush the trailing partial line (without newline) at end of stream.
-    pub fn finish_line(&mut self) -> Option<StyledLine> {
-        if self.carry.is_empty() {
-            return None;
-        }
-        let bytes = std::mem::take(&mut self.carry);
-        let mut parser = AnsiLineParser::default();
-        let mut lines = parser.feed(&String::from_utf8_lossy(&bytes));
-        lines.pop()
     }
 }
 
@@ -151,12 +153,10 @@ fn consume_escape(bytes: &[u8]) -> Option<(Option<Sgr>, usize)> {
             // CSI: params 0x30-0x3F, intermediates 0x20-0x2F, final 0x40-0x7E.
             let mut i = 2usize;
             loop {
-                let Some(&b) = bytes.get(i) else {
-                    return None; // incomplete
-                };
+                let &b = bytes.get(i)?;
                 if (0x40..=0x7e).contains(&b) {
                     let params: Vec<u16> = String::from_utf8_lossy(&bytes[2..i])
-                        .split(|c: char| c == ';')
+                        .split(';')
                         .map(|p| p.parse::<u16>().unwrap_or(0))
                         .collect();
                     let is_sgr = b == b'm';
@@ -172,9 +172,7 @@ fn consume_escape(bytes: &[u8]) -> Option<(Option<Sgr>, usize)> {
             // OSC: terminated by BEL (0x07) or ST (ESC \).
             let mut i = 2usize;
             loop {
-                let Some(&b) = bytes.get(i) else {
-                    return None;
-                };
+                let &b = bytes.get(i)?;
                 if b == 0x07 {
                     return Some((None, i + 1));
                 }
@@ -190,8 +188,9 @@ fn consume_escape(bytes: &[u8]) -> Option<(Option<Sgr>, usize)> {
     }
 }
 
-/// Accumulates styled spans for one line, tracking the current SGR state.
-#[derive(Default)]
+/// Accumulates styled spans for the current line, tracking SGR state that
+/// persists across lines and feeds.
+#[derive(Debug, Default)]
 struct LineBuilder {
     spans: Vec<Span>,
     cur: String,
@@ -216,13 +215,16 @@ impl LineBuilder {
         self.cur.push(c);
     }
 
-    /// `\r` — restart the line (best-effort progress-bar handling).
+    /// `\r` — discard everything on the current line (progress-bar handling).
     fn cr(&mut self) {
         self.spans.clear();
         self.cur.clear();
     }
 
+    /// Apply an SGR sequence: the text accumulated so far belongs to the
+    /// *previous* style, so flush it first, then mutate state.
     fn apply_sgr(&mut self, params: &[u16]) {
+        self.flush();
         if params.is_empty() {
             params_sgr(self, &[0]);
             return;
@@ -230,14 +232,10 @@ impl LineBuilder {
         params_sgr(self, params);
     }
 
-    fn finish(mut self) -> StyledLine {
+    /// Take the completed spans; SGR state persists to the next line.
+    fn finish_line(&mut self) -> StyledLine {
         self.flush();
-        StyledLine { spans: self.spans }
-    }
-
-    fn finish_partial(mut self) -> StyledLine {
-        self.flush();
-        StyledLine { spans: self.spans }
+        StyledLine { spans: std::mem::take(&mut self.spans) }
     }
 
     fn flush(&mut self) {
@@ -249,6 +247,30 @@ impl LineBuilder {
         }
     }
 }
+
+/// ANSI base colors 30–37 / 40–47.
+const BASE_COLORS: [Color; 8] = [
+    Color::Black,
+    Color::Red,
+    Color::Green,
+    Color::Yellow,
+    Color::Blue,
+    Color::Magenta,
+    Color::Cyan,
+    Color::Gray,
+];
+
+/// ANSI bright colors 90–97 / 100–107.
+const BRIGHT_COLORS: [Color; 8] = [
+    Color::DarkGray,
+    Color::LightRed,
+    Color::LightGreen,
+    Color::LightYellow,
+    Color::LightBlue,
+    Color::LightMagenta,
+    Color::LightCyan,
+    Color::White,
+];
 
 fn params_sgr(b: &mut LineBuilder, params: &[u16]) {
     let mut i = 0usize;
@@ -270,7 +292,7 @@ fn params_sgr(b: &mut LineBuilder, params: &[u16]) {
             24 => b.mods &= !Modifier::UNDERLINED,
             27 => b.mods &= !Modifier::REVERSED,
             29 => b.mods &= !Modifier::CROSSED_OUT,
-            30..=37 => b.fg = Some(Color::Indexed((params[i] - 30) as u8)),
+            30..=37 => b.fg = Some(BASE_COLORS[(params[i] - 30) as usize]),
             38 => {
                 // extended fg: 38;5;n or 38;2;r;g;b
                 if let Some((color, consumed)) = extended_color(&params[i..]) {
@@ -279,7 +301,7 @@ fn params_sgr(b: &mut LineBuilder, params: &[u16]) {
                 }
             }
             39 => b.fg = None,
-            40..=47 => b.bg = Some(Color::Indexed((params[i] - 40) as u8)),
+            40..=47 => b.bg = Some(BASE_COLORS[(params[i] - 40) as usize]),
             48 => {
                 if let Some((color, consumed)) = extended_color(&params[i..]) {
                     b.bg = Some(color);
@@ -287,8 +309,8 @@ fn params_sgr(b: &mut LineBuilder, params: &[u16]) {
                 }
             }
             49 => b.bg = None,
-            90..=97 => b.fg = Some(Color::Indexed((params[i] - 90 + 8) as u8)),
-            100..=107 => b.bg = Some(Color::Indexed((params[i] - 100 + 8) as u8)),
+            90..=97 => b.fg = Some(BRIGHT_COLORS[(params[i] - 90) as usize]),
+            100..=107 => b.bg = Some(BRIGHT_COLORS[(params[i] - 100) as usize]),
             _ => {}
         }
         i += 1;
@@ -351,12 +373,6 @@ mod tests {
     }
 
     #[test]
-    fn bright_colors_map_to_indexed_8_to_15() {
-        let lines = feed_all("\x1b[91mbright red\n");
-        assert_eq!(lines[0].spans[0].style.fg, Some(Color::Indexed(9)));
-    }
-
-    #[test]
     fn truecolor_supported() {
         let lines = feed_all("\x1b[38;2;255;128;0morange\n");
         assert_eq!(lines[0].spans[0].style.fg, Some(Color::Rgb(255, 128, 0)));
@@ -380,22 +396,25 @@ mod tests {
     #[test]
     fn escape_split_across_feeds_is_handled() {
         let mut p = AnsiLineParser::new();
-        let first = p.feed("abc\x1b");
-        assert_eq!(first.len(), 1);
-        assert_eq!(first[0].text(), "abc");
+        // Nothing completes until a newline arrives.
+        assert!(p.feed("abc\x1b").is_empty());
         let second = p.feed("[31mred\n");
         assert_eq!(second.len(), 1);
-        assert_eq!(second[0].text(), "red");
-        assert_eq!(second[0].spans[0].style.fg, Some(Color::Red));
+        // The split escape reassembles: "abc" is plain text, then SGR kicks in.
+        assert_eq!(second[0].text(), "abcred");
+        assert_eq!(second[0].spans[0].content, "abc");
+        assert_eq!(second[0].spans[0].style.fg, None);
+        assert_eq!(second[0].spans[1].content, "red");
+        assert_eq!(second[0].spans[1].style.fg, Some(Color::Red));
     }
 
     #[test]
     fn utf8_multibyte_preserved_and_split_safe() {
         let mut p = AnsiLineParser::new();
-        let a = p.feed("hél");
-        assert_eq!(a[0].text(), "hél");
+        assert!(p.feed("hél").is_empty()); // line still open
         let b = p.feed("lo ❯\n");
-        assert_eq!(b[0].text(), "lo ❯");
+        assert_eq!(b.len(), 1);
+        assert_eq!(b[0].text(), "héllo ❯");
     }
 
     #[test]
@@ -404,6 +423,26 @@ mod tests {
         let lines = feed_all(" 10%\r 50%\r done\n");
         assert_eq!(lines.len(), 1);
         assert_eq!(lines[0].text(), " done");
+    }
+
+    #[test]
+    fn crlf_is_a_line_ending_not_a_restart() {
+        // PTY output uses \r\n line endings; content before them must survive.
+        let lines = feed_all("bash$ echo hi\r\nhi\r\n");
+        assert_eq!(lines.len(), 2);
+        assert_eq!(lines[0].text(), "bash$ echo hi");
+        assert_eq!(lines[1].text(), "hi");
+    }
+
+    #[test]
+    fn lone_cr_then_lf_sequence_split_across_feeds() {
+        // \r at the end of one chunk, \n starting the next: still a line ending.
+        let mut p = AnsiLineParser::new();
+        assert!(p.feed("abc\r").is_empty());
+        let lines = p.feed("\ndef\n");
+        assert_eq!(lines.len(), 2);
+        assert_eq!(lines[0].text(), "abc");
+        assert_eq!(lines[1].text(), "def");
     }
 
     #[test]
@@ -416,10 +455,8 @@ mod tests {
     }
 
     #[test]
-    fn trailing_partial_line_flushes_without_newline() {
-        let mut p = AnsiLineParser::new();
-        let lines = p.feed("no newline");
-        assert_eq!(lines.len(), 1);
-        assert_eq!(lines[0].text(), "no newline");
+    fn bright_colors_map_to_named_variants() {
+        let lines = feed_all("\x1b[91mbright red\n");
+        assert_eq!(lines[0].spans[0].style.fg, Some(Color::LightRed));
     }
 }

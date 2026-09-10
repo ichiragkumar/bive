@@ -14,9 +14,9 @@ pub const MAX_LINES: usize = 10_000;
 #[derive(Debug, Default)]
 pub struct LogBuffer {
     pub lines: Vec<StyledLine>,
+    /// The parser owns line-splitting across chunk boundaries: `feed` only
+    /// returns *completed* lines, so the buffer just stores them.
     parser: AnsiLineParser,
-    /// Set when the parser carries an unfinished line (no newline yet).
-    open: bool,
 }
 
 impl LogBuffer {
@@ -25,31 +25,14 @@ impl LogBuffer {
     }
 
     /// Append raw PTY text (may contain many lines and partial escapes).
-    /// Chunk boundaries without newlines merge into one logical line.
+    /// Chunks split mid-line merge into one logical line inside the parser.
     pub fn feed(&mut self, raw: &str) {
         if raw.is_empty() {
             return;
         }
-        let ends_with_newline = raw.ends_with('\n');
-        let mut parsed = self.parser.feed(raw);
-        // A feed ending in `\n` leaves an empty trailing partial — drop it.
-        if ends_with_newline {
-            parsed.pop();
-        }
-        // If the previous feed ended mid-line, the first parsed element here is
-        // its continuation: merge it into the last stored line.
-        let mut iter = parsed.into_iter();
-        if self.open && !self.lines.is_empty() {
-            if let Some(first) = iter.next() {
-                if let Some(last) = self.lines.last_mut() {
-                    last.spans.extend(first.spans);
-                }
-            }
-        }
-        for line in iter {
+        for line in self.parser.feed(raw) {
             self.lines.push(line);
         }
-        self.open = !ends_with_newline;
         self.trim();
     }
 
@@ -69,14 +52,15 @@ impl LogBuffer {
     pub fn clear(&mut self) {
         self.lines.clear();
         self.parser = AnsiLineParser::new();
-        self.open = false;
     }
 
+    #[allow(dead_code)]
     pub fn len(&self) -> usize {
         self.lines.len()
     }
 
     #[allow(clippy::len_without_is_empty)]
+    #[allow(dead_code)]
     pub fn is_empty(&self) -> bool {
         self.lines.is_empty()
     }
@@ -88,7 +72,7 @@ pub fn rows_for(line: &StyledLine, width: u16) -> usize {
         return 1;
     }
     let len = line.text().chars().count();
-    ((len + width as usize - 1) / width as usize).max(1)
+    len.div_ceil(width as usize).max(1)
 }
 
 /// A slice of the buffer to render: (line_index, start_row_within_line).
@@ -102,6 +86,7 @@ pub struct Window {
 ///
 /// * `follow=true` → anchored to the bottom (latest output).
 /// * `follow=false` → anchored at `scroll_line` (top row of the viewport).
+///
 /// Returns the window plus the total row count (for scrollbar math).
 pub fn render_window(
     lines: &[StyledLine],
@@ -186,14 +171,16 @@ mod tests {
     #[test]
     fn ring_trims_to_max() {
         let mut buf = LogBuffer::new();
-        let big = (0..600).map(|i| format!("line{i}\n")).collect::<String>();
-        // Feed in chunks so no single feed exceeds MAX_LINES.
-        for chunk in big.split_inclusive('\n') {
-            buf.feed(chunk);
+        // Feed 12,000 lines in newline-terminated batches of 100.
+        for batch in (0..12_000).step_by(100) {
+            let chunk: String = (batch..batch + 100)
+                .map(|i| format!("line{i}\n"))
+                .collect();
+            buf.feed(&chunk);
         }
         assert_eq!(buf.len(), MAX_LINES);
-        assert_eq!(buf.lines.last().unwrap().text(), "line599");
-        assert_eq!(buf.lines[0].text(), &format!("line{}", 600 - MAX_LINES));
+        assert_eq!(buf.lines.last().unwrap().text(), "line11999");
+        assert_eq!(buf.lines[0].text(), format!("line{}", 12_000 - MAX_LINES));
     }
 
     #[test]
@@ -230,10 +217,12 @@ mod tests {
     }
 
     #[test]
-    fn window_scroll_clamps_past_end() {
+    fn window_scroll_past_end_shows_bottom() {
         let lines: Vec<StyledLine> = (0..10).map(|i| line(&format!("L{i}"))).collect();
+        // Scrolling past the end lands on the bottom viewport (lines 5..10
+        // fill a 5-row pane), not an empty tail.
         let (win, _) = render_window(&lines, 5, 80, false, 999);
-        assert_eq!(win.start_line, 9);
+        assert_eq!(win.start_line, 5);
     }
 
     #[test]
@@ -248,10 +237,11 @@ mod tests {
 
     #[test]
     fn window_wrapped_bottom_viewport_may_start_mid_line() {
-        // 5 wrapped lines (2 rows each) with height 3 → top row shows bottom half.
+        // 5 wrapped lines (2 rows each = 10 rows) with height 3: the last 3
+        // rows are line3-row1, line4-row0, line4-row1 → window starts there.
         let lines: Vec<StyledLine> = (0..5).map(|_| line(&"x".repeat(80))).collect();
         let (win, _) = render_window(&lines, 3, 40, true, 0);
-        assert_eq!(win.start_line, 1); // skips line 0 (rows 0-1) to fit 3 rows
+        assert_eq!(win.start_line, 3);
         assert_eq!(win.start_row, 1);
     }
 

@@ -59,7 +59,7 @@ pub async fn serve(
                     }
                 }
             }
-            _ = shutdown.changed(), if *shutdown.borrow() == false => {
+            _ = shutdown.changed(), if !*shutdown.borrow() => {
                 tracing::info!("IPC server shutting down");
                 break;
             }
