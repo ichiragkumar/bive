@@ -1,15 +1,19 @@
 // Composer: single send-input bar below the detail tabs (not per-tab).
 // Line-send only — no raw keystroke passthrough this phase.
 
-export function mountComposer(store, invoke) {
-  const input = document.getElementById("composer");
+import type { TauriInvoke } from "../globals.js";
+import type { Store } from "../store.js";
+import { req } from "./shared.js";
 
-  document.getElementById("composer-send").onclick = sendLine;
-  input.addEventListener("keydown", (e) => {
+export function mountComposer(store: Store, invoke: TauriInvoke): void {
+  const input = req<HTMLInputElement>("composer");
+
+  req("composer-send").onclick = sendLine;
+  input.addEventListener("keydown", (e: KeyboardEvent) => {
     if (e.key === "Enter") sendLine();
   });
 
-  async function sendLine() {
+  async function sendLine(): Promise<void> {
     const id = store.state.selectedId;
     if (!id || !input.value) return;
     const text = input.value;

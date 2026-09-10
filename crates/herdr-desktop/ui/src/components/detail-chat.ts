@@ -3,14 +3,15 @@
 // snapshots. bash/generic profiles show a "raw output only" notice pointing
 // at the Terminal tab instead of an empty Chat.
 
-import { esc } from "./shared.js";
+import type { AgentCard, ChatSegment, Store } from "../store.js";
+import { esc, req } from "./shared.js";
 
 const RAW_PROFILES = new Set(["bash", "generic"]);
 
-export function mountDetailChat(store) {
-  const panel = document.getElementById("tab-chat");
-  const turnsEl = document.getElementById("chat-turns");
-  const mediaEl = document.getElementById("chat-media");
+export function mountDetailChat(store: Store): void {
+  const panel = req("tab-chat");
+  const turnsEl = req("chat-turns");
+  const mediaEl = req("chat-media");
 
   store.subscribe((s) => {
     const card = s.cards.find((c) => c.info.id === s.selectedId);
@@ -18,7 +19,7 @@ export function mountDetailChat(store) {
     renderChat(card, s.chat[card.info.id] || []);
   });
 
-  function renderChat(card, turns) {
+  function renderChat(card: AgentCard, turns: ChatSegment[]): void {
     mediaEl.innerHTML = "";
     for (const m of card.media || []) {
       const fig = document.createElement("figure");

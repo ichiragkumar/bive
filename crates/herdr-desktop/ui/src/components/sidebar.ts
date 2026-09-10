@@ -1,19 +1,17 @@
 // Sidebar: host groups (Local + remotes), spawn with profile picker, filter.
 
-import { esc } from "./shared.js";
+import type { TauriInvoke } from "../globals.js";
+import type { RemoteHostEntry, Store } from "../store.js";
+import { esc, req } from "./shared.js";
 
 export const PROFILES = ["generic", "claude-code", "codex", "bash"];
 
-function hostOf(card) {
-  return card.info.host || null;
-}
+export function mountSidebar(store: Store, invoke: TauriInvoke): void {
+  const hostList = req("host-list");
+  const profilePicker = req<HTMLSelectElement>("profile-picker");
+  const filterSel = req<HTMLSelectElement>("filter");
 
-export function mountSidebar(store, invoke) {
-  const hostList = document.getElementById("host-list");
-  const profilePicker = document.getElementById("profile-picker");
-  const filterSel = document.getElementById("filter");
-
-  document.getElementById("btn-spawn").onclick = async () => {
+  req("btn-spawn").onclick = async () => {
     await invoke("spawn_agent_cmd", {
       profile: profilePicker.value,
       cwd: "/tmp",
@@ -23,7 +21,7 @@ export function mountSidebar(store, invoke) {
     });
   };
 
-  document.getElementById("btn-add-remote").onclick = async () => {
+  req("btn-add-remote").onclick = async () => {
     const name = window.prompt("Remote name (used with spawn --host):");
     if (!name) return;
     const sshTarget = window.prompt(`SSH target for "${name}" (host or user@host):`);
@@ -32,9 +30,9 @@ export function mountSidebar(store, invoke) {
     refreshHosts();
   };
 
-  async function refreshHosts() {
+  async function refreshHosts(): Promise<void> {
     try {
-      const hosts = await invoke("remote_list_cmd");
+      const hosts = (await invoke("remote_list_cmd")) as RemoteHostEntry[];
       store.applyHosts(hosts);
     } catch {
       /* daemon without remotes support: sidebar stays local-only */
@@ -50,39 +48,43 @@ export function mountSidebar(store, invoke) {
       lastFleetKey = key;
       refreshHosts();
     }
-    renderHosts(s);
+    renderHosts();
   });
 
-  hostList.onclick = async (e) => {
-    const li = e.target.closest("li[data-host]");
+  hostList.onclick = async (e: MouseEvent) => {
+    const li = (e.target as HTMLElement | null)?.closest("li[data-host]") as HTMLElement | null;
     if (!li) return;
-    if (e.target.closest("button.rm-host")) {
-      await invoke("remote_remove_cmd", { name: li.dataset.host });
+    if ((e.target as HTMLElement | null)?.closest("button.rm-host")) {
+      await invoke("remote_remove_cmd", { name: li.dataset.host as string });
       if (store.state.selectedHost === li.dataset.host) store.state.selectedHost = null;
       refreshHosts();
       return;
     }
-    store.state.selectedHost = li.dataset.host === "" ? null : li.dataset.host;
-    renderHosts(store.state);
+    store.state.selectedHost = li.dataset.host === "" ? null : (li.dataset.host as string);
+    renderHosts();
   };
 
   filterSel.onchange = () => store.setFilter(filterSel.value);
 
-  function renderHosts(s) {
+  function renderHosts(): void {
+    const s = store.state;
     // Hosts = union of registered remotes and hosts seen on live agents.
-    const seen = new Map(); // name|null → count
+    const seen = new Map<string | null, number>();
     for (const c of s.cards) {
-      const h = hostOf(c);
+      const h = c.info.host || null;
       seen.set(h, (seen.get(h) || 0) + 1);
     }
-    const rows = [["", "Local", seen.get(null) || 0]];
+    const rows: Array<[string, string, number]> = [["", "Local", seen.get(null) || 0]];
     for (const [host, up] of s.hosts) {
-      const name = Array.isArray(host) ? host[0].name : host.name;
-      const isUp = Array.isArray(host) ? host[1] : up;
-      rows.push([name, isUp ? esc(name) : `${esc(name)} (offline)`, seen.get(name) || 0]);
+      rows.push([
+        host.name,
+        up ? esc(host.name) : `${esc(host.name)} (offline)`,
+        seen.get(host.name) || 0,
+      ]);
     }
-    for (const [name] of seen) {
-      if (name !== null && !rows.some((r) => r[0] === name)) rows.push([name, esc(name), seen.get(name)]);
+    for (const [name, count] of seen) {
+      if (name !== null && !rows.some((r) => r[0] === name))
+        rows.push([name, esc(name), count]);
     }
     hostList.innerHTML = "";
     for (const [key, label, count] of rows) {

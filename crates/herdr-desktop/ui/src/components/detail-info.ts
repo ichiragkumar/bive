@@ -1,22 +1,23 @@
 // Detail Info tab: explicit agent metadata (previously implicit/missing).
 
-import { stateName } from "./shared.js";
+import type { Store } from "../store.js";
+import { req, stateName } from "./shared.js";
 
-function uptime(startedMs) {
+function uptime(startedMs: number): string {
   const s = Math.max(0, Math.floor((Date.now() - startedMs) / 1000));
   if (s < 60) return `${s}s`;
   if (s < 3600) return `${Math.floor(s / 60)}m ${s % 60}s`;
   return `${Math.floor(s / 3600)}h ${Math.floor((s % 3600) / 60)}m`;
 }
 
-export function mountDetailInfo(store) {
-  const list = document.getElementById("detail-info-list");
+export function mountDetailInfo(store: Store): void {
+  const list = req("detail-info-list");
 
   store.subscribe((s) => {
     const card = s.cards.find((c) => c.info.id === s.selectedId);
     if (!card || store.tabFor(card.info.id, card.info.profile) !== "info") return;
     const info = card.info;
-    const rows = [
+    const rows: Array<[string, string]> = [
       ["id", info.id],
       ["host", info.host || "local"],
       ["profile", info.profile],

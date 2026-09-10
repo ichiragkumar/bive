@@ -31,10 +31,19 @@ def main() -> None:
     harness = HARNESS_PATH.read_text()
     bundle = BUNDLE_PATH.read_text()
 
-    # Stylesheets: <link rel="stylesheet" href="styles/x.css" /> → <style>.
+    # Stylesheets: <link rel="stylesheet" href="styles/x.css" /> → <style>,
+    # with font URLs rewritten to absolute file paths (the preview page lives
+    # in target/, so ui-relative ../fonts/ would not resolve there).
     def inline_css(match: re.Match) -> str:
         css_file = UI / match.group(1)
         css = css_file.read_text()
+
+        def inline_font(m: re.Match) -> str:
+            # Group 1 is ui-relative already ("fonts/…"); resolve against UI.
+            font_file = (UI / m.group(1)).resolve()
+            return f'url("file://{font_file}")'
+
+        css = re.sub(r'url\("\.\./(fonts/[^)"]+)"\)', inline_font, css)
         return f"<style>\n/* inlined from {match.group(1)} */\n{css}\n    </style>"
 
     html, n_css = re.subn(

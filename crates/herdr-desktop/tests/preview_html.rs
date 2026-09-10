@@ -311,6 +311,25 @@ fn dashboard_css_covers_rendered_surfaces() {
         .collect::<Vec<_>>()
         .join("\n");
     assert!(css.len() > 1024, "styles/ look truncated");
+    // Design tokens: Void/Panel/Signal/Mist base, state colors as accents,
+    // IBM Plex Mono for headlines/data with local @font-face files.
+    for tok in [
+        "--void:",
+        "--panel:",
+        "--text:",
+        "--text-muted:",
+        "--working:",
+        "--blocked:",
+        "--errored:",
+        "--exited:",
+        "--font-sans:",
+        "--font-mono:",
+        "@font-face",
+        "IBM Plex Mono",
+        "IBM Plex Sans",
+    ] {
+        assert_contains(&css, tok, "styles/ tokens");
+    }
     // Every selector the skeleton and rendered surfaces depend on.
     for sel in [
         ":root",
@@ -333,6 +352,31 @@ fn dashboard_css_covers_rendered_surfaces() {
     ] {
         assert_contains(&css, sel, "styles/");
     }
+}
+
+#[test]
+fn dashboard_fonts_are_bundled_locally() {
+    // Plex files are committed (offline-first); the Tauri CSP allows them.
+    let root = workspace_root();
+    let dir = root.join("crates/herdr-desktop/ui/fonts");
+    let mut count = 0;
+    for entry in
+        std::fs::read_dir(&dir).unwrap_or_else(|e| panic!("reading {}: {e}", dir.display()))
+    {
+        let path = entry.expect("dir entry").path();
+        let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("");
+        if ext == "woff2" || ext == "ttf" {
+            let size = std::fs::metadata(&path).expect("stat").len();
+            assert!(size > 5000, "{} looks truncated", path.display());
+            count += 1;
+        }
+    }
+    assert!(
+        count >= 8,
+        "expected ≥8 committed font files (Sans+Mono × 4 weights), got {count}"
+    );
+    let conf = read("crates/herdr-desktop/tauri.conf.json");
+    assert_contains(&conf, "font-src 'self'", "tauri.conf.json CSP");
 }
 
 #[test]
@@ -388,6 +432,7 @@ fn preview_harness_matches_dashboard_contract() {
         "target/preview/index.html",
         "preview-banner",
         "stylesheet",
+        "fonts",
     ] {
         assert_contains(&gen, symbol, "make_preview.py");
     }
@@ -427,8 +472,14 @@ fn generated_preview_renders_fleet_ui() {
     check_mount_points(&html, "generated preview");
     assert_contains(&html, "preview-banner", "generated preview");
 
-    // …with all three parts embedded: stylesheets, harness shim, bundle.
-    assert_contains(&html, "--bg:", "generated preview (embedded CSS)");
+    // …with all three parts embedded: stylesheets, harness shim, bundle —
+    // plus @font-face rules rewritten to absolute file paths.
+    assert_contains(&html, "--void:", "generated preview (embedded CSS)");
+    assert_contains(&html, "@font-face", "generated preview (embedded fonts)");
+    assert!(
+        !html.contains("../fonts"),
+        "generated preview has unresolved relative font URLs"
+    );
     assert_contains(
         &html,
         "window.__TAURI__",

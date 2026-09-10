@@ -1,34 +1,38 @@
 // Detail pane shell: persistent panel (no modal), tab switching with
 // per-agent memory, kill/copy actions. Tab content owned by detail-* modules.
 
-export function mountDetail(store, invoke) {
-  const title = document.getElementById("detail-title");
-  const tabs = [...document.querySelectorAll("#detail-header .tab")];
-  const panels = {
-    chat: document.getElementById("tab-chat"),
-    terminal: document.getElementById("tab-terminal"),
-    info: document.getElementById("tab-info"),
+import type { TauriInvoke } from "../globals.js";
+import type { Store } from "../store.js";
+import { req } from "./shared.js";
+
+export function mountDetail(store: Store, invoke: TauriInvoke): void {
+  const title = req("detail-title");
+  const tabs = Array.from(document.querySelectorAll<HTMLElement>("#detail-header .tab"));
+  const panels: Record<string, HTMLElement> = {
+    chat: req("tab-chat"),
+    terminal: req("tab-terminal"),
+    info: req("tab-info"),
   };
 
   tabs.forEach((btn) => {
     btn.onclick = () => {
       const id = store.state.selectedId;
-      if (id) store.setTab(id, btn.dataset.tab);
+      if (id) store.setTab(id, btn.dataset["tab"] as string);
       else showTab("chat");
     };
   });
 
-  document.getElementById("detail-kill").onclick = async () => {
+  req("detail-kill").onclick = async () => {
     const id = store.state.selectedId;
     if (id) await invoke("kill_agent_cmd", { agentId: id });
   };
-  document.getElementById("detail-copy").onclick = () => {
+  req("detail-copy").onclick = () => {
     const id = store.state.selectedId;
     if (id) navigator.clipboard.writeText(id);
   };
 
-  function showTab(tab) {
-    tabs.forEach((b) => b.classList.toggle("active", b.dataset.tab === tab));
+  function showTab(tab: string): void {
+    tabs.forEach((b) => b.classList.toggle("active", b.dataset["tab"] === tab));
     for (const [name, el] of Object.entries(panels)) {
       el.hidden = name !== tab;
     }

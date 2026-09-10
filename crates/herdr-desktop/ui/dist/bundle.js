@@ -1,6 +1,14 @@
-// crates/herdr-desktop/ui/components/shared.js
+// crates/herdr-desktop/ui/src/components/shared.ts
+function req(id) {
+  const el = document.getElementById(id);
+  if (!el) throw new Error(`herdr UI: missing element #${id}`);
+  return el;
+}
 function esc(s) {
-  return s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+  return s.replace(
+    /[&<>"]/g,
+    (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]
+  );
 }
 function ansiToHtml(text) {
   const codes = { 30: "#6b7280", 31: "#e05656", 32: "#3fb96f", 33: "#e5b34a", 34: "#4c8dff", 35: "#c084fc", 36: "#22d3ee", 37: "#e6e9f0", 90: "#8b93a5" };
@@ -23,9 +31,14 @@ function ansiToHtml(text) {
 }
 function stateName(state) {
   if (typeof state === "string") return state;
-  if ("Errored" in state) return "Errored";
-  if ("Exited" in state) return "Exited";
-  return Object.keys(state)[0];
+  if (typeof state === "object" && state !== null) {
+    const obj = state;
+    if ("Errored" in obj) return "Errored";
+    if ("Exited" in obj) return "Exited";
+    const keys = Object.keys(obj);
+    if (keys.length) return keys[0];
+  }
+  return "Unknown";
 }
 function lastLine(text) {
   const clean = text.replace(/\x1b\[[?0-9;]*[a-zA-Z]/g, "");
@@ -37,23 +50,18 @@ function isToolLine(line) {
   return t.startsWith("\u23FA") || t.startsWith("\u23BF") || line.includes("[media:");
 }
 
-// crates/herdr-desktop/ui/store.js
+// crates/herdr-desktop/ui/src/store.ts
 var MIN_SENT_MATCH_CHARS = 3;
 function createStore() {
   const state = {
     cards: [],
-    /** agent id → ChatSegment[] (authoritative from snapshot `chat`). */
     chat: {},
-    /** [[RemoteHost, bool]] from remote_list_cmd. */
     hosts: [],
     selectedId: null,
-    /** agent id → last tab ('chat' | 'terminal' | 'info'). */
     tabs: {},
     filter: "all",
-    /** sidebar host selection; null = local. */
     selectedHost: null,
     connected: false,
-    /** agent id → pending sent texts awaiting echo (live chat mirror). */
     pendingSent: {}
   };
   const listeners = /* @__PURE__ */ new Set();
@@ -86,7 +94,9 @@ function createStore() {
     state,
     subscribe(fn) {
       listeners.add(fn);
-      return () => listeners.delete(fn);
+      return () => {
+        listeners.delete(fn);
+      };
     },
     findCard,
     applySnapshot(snap) {
@@ -95,7 +105,8 @@ function createStore() {
       state.chat = snap.chat || {};
       state.pendingSent = {};
       if (state.selectedId && !findCard(state.selectedId)) state.selectedId = null;
-      if (!state.selectedId && state.cards.length) state.selectedId = state.cards[0].info.id;
+      if (!state.selectedId && state.cards.length)
+        state.selectedId = state.cards[0].info.id;
       emit();
     },
     applyHosts(hosts) {
@@ -107,7 +118,8 @@ function createStore() {
       const body = ev[kind];
       const id = body.agent_id || body.info && body.info.id;
       if (kind === "AgentSpawned") {
-        if (!findCard(id)) state.cards.push({ info: body.info, log_tail: "", media: [] });
+        if (!findCard(id))
+          state.cards.push({ info: body.info, log_tail: "", media: [] });
         else findCard(id).info = body.info;
         if (!state.selectedId) state.selectedId = id;
       } else if (kind === "AgentOutput") {
@@ -120,7 +132,11 @@ function createStore() {
         const c = findCard(id);
         if (c) {
           c.media = c.media || [];
-          c.media.push({ mime: body.mime, data_base64: body.data_base64, caption: body.caption });
+          c.media.push({
+            mime: body.mime,
+            data_base64: body.data_base64,
+            caption: body.caption ?? null
+          });
           const line = `[media: ${body.mime}]
 `;
           c.log_tail = ((c.log_tail || "") + line).slice(-64 * 1024);
@@ -131,7 +147,8 @@ function createStore() {
         if (c) c.info.state = body.state;
       } else if (kind === "AgentExited") {
         const c = findCard(id);
-        if (c) c.info.state = body.code === 0 ? { Exited: 0 } : { Errored: `exit ${body.code}` };
+        if (c)
+          c.info.state = body.code === 0 ? { Exited: 0 } : { Errored: `exit ${body.code}` };
       } else if (kind === "AgentRemoved") {
         state.cards = state.cards.filter((c) => c.info.id !== id);
         delete state.chat[id];
@@ -174,7 +191,7 @@ function createStore() {
   };
 }
 
-// crates/herdr-desktop/ui/components/topbar.js
+// crates/herdr-desktop/ui/src/components/topbar.ts
 function fleetDot(cards) {
   if (!cards.length) return "gray";
   if (cards.some((c) => stateName(c.info.state) === "Errored")) return "red";
@@ -182,11 +199,11 @@ function fleetDot(cards) {
   return "green";
 }
 function mountTopbar(store2, invoke2) {
-  const connDot = document.getElementById("conn-dot");
-  const fleetDotEl = document.getElementById("fleet-dot");
-  const summary = document.getElementById("fleet-summary");
-  document.getElementById("btn-kill-all").onclick = () => invoke2("kill_all_cmd");
-  document.getElementById("btn-side").onclick = () => document.body.classList.toggle("no-side");
+  const connDot = req("conn-dot");
+  const fleetDotEl = req("fleet-dot");
+  const summary = req("fleet-summary");
+  req("btn-kill-all").onclick = () => invoke2("kill_all_cmd");
+  req("btn-side").onclick = () => document.body.classList.toggle("no-side");
   store2.subscribe((s) => {
     connDot.classList.toggle("connected", s.connected);
     const counts = { Working: 0, Blocked: 0, Errored: 0 };
@@ -195,12 +212,12 @@ function mountTopbar(store2, invoke2) {
       if (n in counts) counts[n] += 1;
     }
     const total = s.cards.length;
-    summary.textContent = total ? `${total} agent${total === 1 ? "" : "s"} \u2014 ${counts.Working} working, ${counts.Blocked} blocked, ${counts.Errored} errored` : "no agents";
+    summary.textContent = total ? `${total} agent${total === 1 ? "" : "s"} \u2014 ${counts["Working"]} working, ${counts["Blocked"]} blocked, ${counts["Errored"]} errored` : "no agents";
     fleetDotEl.className = "dot " + fleetDot(s.cards);
   });
 }
 
-// crates/herdr-desktop/ui/components/tray.js
+// crates/herdr-desktop/ui/src/components/tray.ts
 function mountTray(store2) {
   store2.subscribe((s) => {
     const dot = fleetDot(s.cards);
@@ -211,15 +228,12 @@ function mountTray(store2) {
   });
 }
 
-// crates/herdr-desktop/ui/components/sidebar.js
-function hostOf(card) {
-  return card.info.host || null;
-}
+// crates/herdr-desktop/ui/src/components/sidebar.ts
 function mountSidebar(store2, invoke2) {
-  const hostList = document.getElementById("host-list");
-  const profilePicker = document.getElementById("profile-picker");
-  const filterSel = document.getElementById("filter");
-  document.getElementById("btn-spawn").onclick = async () => {
+  const hostList = req("host-list");
+  const profilePicker = req("profile-picker");
+  const filterSel = req("filter");
+  req("btn-spawn").onclick = async () => {
     await invoke2("spawn_agent_cmd", {
       profile: profilePicker.value,
       cwd: "/tmp",
@@ -228,7 +242,7 @@ function mountSidebar(store2, invoke2) {
       host: store2.state.selectedHost
     });
   };
-  document.getElementById("btn-add-remote").onclick = async () => {
+  req("btn-add-remote").onclick = async () => {
     const name = window.prompt("Remote name (used with spawn --host):");
     if (!name) return;
     const sshTarget = window.prompt(`SSH target for "${name}" (host or user@host):`);
@@ -251,35 +265,39 @@ function mountSidebar(store2, invoke2) {
       lastFleetKey = key;
       refreshHosts();
     }
-    renderHosts(s);
+    renderHosts();
   });
   hostList.onclick = async (e) => {
-    const li = e.target.closest("li[data-host]");
+    const li = e.target?.closest("li[data-host]");
     if (!li) return;
-    if (e.target.closest("button.rm-host")) {
+    if (e.target?.closest("button.rm-host")) {
       await invoke2("remote_remove_cmd", { name: li.dataset.host });
       if (store2.state.selectedHost === li.dataset.host) store2.state.selectedHost = null;
       refreshHosts();
       return;
     }
     store2.state.selectedHost = li.dataset.host === "" ? null : li.dataset.host;
-    renderHosts(store2.state);
+    renderHosts();
   };
   filterSel.onchange = () => store2.setFilter(filterSel.value);
-  function renderHosts(s) {
+  function renderHosts() {
+    const s = store2.state;
     const seen = /* @__PURE__ */ new Map();
     for (const c of s.cards) {
-      const h = hostOf(c);
+      const h = c.info.host || null;
       seen.set(h, (seen.get(h) || 0) + 1);
     }
     const rows = [["", "Local", seen.get(null) || 0]];
     for (const [host, up] of s.hosts) {
-      const name = Array.isArray(host) ? host[0].name : host.name;
-      const isUp = Array.isArray(host) ? host[1] : up;
-      rows.push([name, isUp ? esc(name) : `${esc(name)} (offline)`, seen.get(name) || 0]);
+      rows.push([
+        host.name,
+        up ? esc(host.name) : `${esc(host.name)} (offline)`,
+        seen.get(host.name) || 0
+      ]);
     }
-    for (const [name] of seen) {
-      if (name !== null && !rows.some((r) => r[0] === name)) rows.push([name, esc(name), seen.get(name)]);
+    for (const [name, count] of seen) {
+      if (name !== null && !rows.some((r) => r[0] === name))
+        rows.push([name, esc(name), count]);
     }
     hostList.innerHTML = "";
     for (const [key, label, count] of rows) {
@@ -299,16 +317,17 @@ function mountSidebar(store2, invoke2) {
   }
 }
 
-// crates/herdr-desktop/ui/components/agent-list.js
+// crates/herdr-desktop/ui/src/components/agent-list.ts
 function mountAgentList(store2, onSelect) {
-  const list = document.getElementById("agent-list");
-  function visibleInScope(s) {
+  const list = req("agent-list");
+  function visibleInScope() {
+    const s = store2.state;
     return s.cards.filter(
       (c) => (s.filter === "all" || stateName(c.info.state) === s.filter) && (s.selectedHost === null || (c.info.host || null) === s.selectedHost)
     );
   }
-  store2.subscribe((s) => renderList(s, visibleInScope(s)));
-  function renderList(s, visible) {
+  store2.subscribe((s) => renderList(visibleInScope(), s.selectedId));
+  function renderList(visible, selectedId) {
     list.innerHTML = "";
     if (!visible.length) {
       const li = document.createElement("li");
@@ -320,7 +339,7 @@ function mountAgentList(store2, onSelect) {
     for (const card of visible) {
       const li = document.createElement("li");
       li.className = "agent-row";
-      if (card.info.id === s.selectedId) li.classList.add("selected");
+      if (card.info.id === selectedId) li.classList.add("selected");
       const st = stateName(card.info.state);
       li.innerHTML = `<span class="id">${esc(card.info.id.slice(0, 12))}</span><span class="profile">${esc(card.info.profile)}</span><span class="badge ${esc(st)}">${esc(st)}</span><span class="last-line">${esc(lastLine(card.log_tail || "")) || "&nbsp;"}</span>`;
       li.onclick = () => onSelect(card.info.id);
@@ -328,8 +347,8 @@ function mountAgentList(store2, onSelect) {
     }
   }
   document.addEventListener("keydown", (e) => {
-    if (/INPUT|SELECT|TEXTAREA/.test(document.activeElement?.tagName || "")) return;
-    const visible = visibleInScope(store2.state);
+    if (/INPUT|SELECT|TEXTAREA/.test(document.activeElement?.tagName ?? "")) return;
+    const visible = visibleInScope();
     if (!visible.length) return;
     let idx = visible.findIndex((c) => c.info.id === store2.state.selectedId);
     const move = (d) => {
@@ -338,36 +357,36 @@ function mountAgentList(store2, onSelect) {
     };
     if (e.key === "j" || e.key === "ArrowDown") move(1);
     else if (e.key === "k" || e.key === "ArrowUp") move(-1);
-    else if (e.key === "Enter") document.getElementById("composer")?.focus();
+    else if (e.key === "Enter") req("composer").focus();
   });
 }
 
-// crates/herdr-desktop/ui/components/detail.js
+// crates/herdr-desktop/ui/src/components/detail.ts
 function mountDetail(store2, invoke2) {
-  const title = document.getElementById("detail-title");
-  const tabs = [...document.querySelectorAll("#detail-header .tab")];
+  const title = req("detail-title");
+  const tabs = Array.from(document.querySelectorAll("#detail-header .tab"));
   const panels = {
-    chat: document.getElementById("tab-chat"),
-    terminal: document.getElementById("tab-terminal"),
-    info: document.getElementById("tab-info")
+    chat: req("tab-chat"),
+    terminal: req("tab-terminal"),
+    info: req("tab-info")
   };
   tabs.forEach((btn) => {
     btn.onclick = () => {
       const id = store2.state.selectedId;
-      if (id) store2.setTab(id, btn.dataset.tab);
+      if (id) store2.setTab(id, btn.dataset["tab"]);
       else showTab("chat");
     };
   });
-  document.getElementById("detail-kill").onclick = async () => {
+  req("detail-kill").onclick = async () => {
     const id = store2.state.selectedId;
     if (id) await invoke2("kill_agent_cmd", { agentId: id });
   };
-  document.getElementById("detail-copy").onclick = () => {
+  req("detail-copy").onclick = () => {
     const id = store2.state.selectedId;
     if (id) navigator.clipboard.writeText(id);
   };
   function showTab(tab) {
-    tabs.forEach((b) => b.classList.toggle("active", b.dataset.tab === tab));
+    tabs.forEach((b) => b.classList.toggle("active", b.dataset["tab"] === tab));
     for (const [name, el] of Object.entries(panels)) {
       el.hidden = name !== tab;
     }
@@ -383,12 +402,12 @@ function mountDetail(store2, invoke2) {
   });
 }
 
-// crates/herdr-desktop/ui/components/detail-chat.js
+// crates/herdr-desktop/ui/src/components/detail-chat.ts
 var RAW_PROFILES = /* @__PURE__ */ new Set(["bash", "generic"]);
 function mountDetailChat(store2) {
-  const panel = document.getElementById("tab-chat");
-  const turnsEl = document.getElementById("chat-turns");
-  const mediaEl = document.getElementById("chat-media");
+  const panel = req("tab-chat");
+  const turnsEl = req("chat-turns");
+  const mediaEl = req("chat-media");
   store2.subscribe((s) => {
     const card = s.cards.find((c) => c.info.id === s.selectedId);
     if (!card || store2.tabFor(card.info.id, card.info.profile) !== "chat") return;
@@ -428,10 +447,10 @@ function mountDetailChat(store2) {
   }
 }
 
-// crates/herdr-desktop/ui/components/detail-terminal.js
+// crates/herdr-desktop/ui/src/components/detail-terminal.ts
 function mountDetailTerminal(store2) {
-  const panel = document.getElementById("tab-terminal");
-  const logEl = document.getElementById("detail-log");
+  const panel = req("tab-terminal");
+  const logEl = req("detail-log");
   store2.subscribe((s) => {
     const card = s.cards.find((c) => c.info.id === s.selectedId);
     if (!card || store2.tabFor(card.info.id, card.info.profile) !== "terminal") return;
@@ -440,7 +459,7 @@ function mountDetailTerminal(store2) {
   });
 }
 
-// crates/herdr-desktop/ui/components/detail-info.js
+// crates/herdr-desktop/ui/src/components/detail-info.ts
 function uptime(startedMs) {
   const s = Math.max(0, Math.floor((Date.now() - startedMs) / 1e3));
   if (s < 60) return `${s}s`;
@@ -448,7 +467,7 @@ function uptime(startedMs) {
   return `${Math.floor(s / 3600)}h ${Math.floor(s % 3600 / 60)}m`;
 }
 function mountDetailInfo(store2) {
-  const list = document.getElementById("detail-info-list");
+  const list = req("detail-info-list");
   store2.subscribe((s) => {
     const card = s.cards.find((c) => c.info.id === s.selectedId);
     if (!card || store2.tabFor(card.info.id, card.info.profile) !== "info") return;
@@ -475,10 +494,10 @@ function mountDetailInfo(store2) {
   });
 }
 
-// crates/herdr-desktop/ui/components/composer.js
+// crates/herdr-desktop/ui/src/components/composer.ts
 function mountComposer(store2, invoke2) {
-  const input = document.getElementById("composer");
-  document.getElementById("composer-send").onclick = sendLine;
+  const input = req("composer");
+  req("composer-send").onclick = sendLine;
   input.addEventListener("keydown", (e) => {
     if (e.key === "Enter") sendLine();
   });
@@ -492,9 +511,9 @@ function mountComposer(store2, invoke2) {
   }
 }
 
-// crates/herdr-desktop/ui/main.js
+// crates/herdr-desktop/ui/src/main.ts
 function fatal(msg) {
-  const el = document.getElementById("fatal");
+  const el = req("fatal");
   el.hidden = false;
   el.textContent = msg;
 }
