@@ -163,7 +163,6 @@ async fn handle_connection(stream: UnixStream, supervisor: Arc<Supervisor>) -> R
     }
     Ok(())
 }
-
 fn event_concerns(event: &DaemonEvent, agent_id: &str) -> bool {
     match event {
         DaemonEvent::AgentSpawned { info } => info.id == agent_id,
@@ -174,6 +173,9 @@ fn event_concerns(event: &DaemonEvent, agent_id: &str) -> bool {
             agent_id: ev_id, ..
         }
         | DaemonEvent::AgentExited {
+            agent_id: ev_id, ..
+        }
+        | DaemonEvent::AgentMedia {
             agent_id: ev_id, ..
         }
         | DaemonEvent::AgentRemoved { agent_id: ev_id } => ev_id == agent_id,

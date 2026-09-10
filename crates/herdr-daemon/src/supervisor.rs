@@ -7,16 +7,21 @@ use std::time::Instant;
 use tokio::sync::watch;
 
 use herdr_protocol::{
-    AgentId, AgentInfo, AgentProfile, AgentState, ClientCommand, DaemonEvent, Response,
+    AgentId, AgentInfo, AgentProfile, AgentState, ClientCommand, DaemonEvent, RemoteHost, Response,
 };
+
+use herdr_remote::EventSink;
 
 use crate::bus::EventBus;
 use crate::pty::{generate_agent_id, spawn_agent, SpawnContext, SpawnSpec};
 use crate::registry::{now_unix_ms, AgentEntry, Registry};
+use crate::remote::RemoteManager;
 
 pub struct Supervisor {
     pub registry: Arc<Registry>,
     pub bus: EventBus,
+    /// Remote host bridges (Phase 4): tagged-id routing + Remote* commands.
+    pub remote: Arc<RemoteManager>,
     started: Instant,
     shutdown_tx: watch::Sender<bool>,
 }
@@ -27,8 +32,46 @@ impl Supervisor {
         Self {
             registry: Arc::new(Registry::new()),
             bus: EventBus::new(),
+            remote: Arc::new(RemoteManager::new()),
             started: Instant::now(),
             shutdown_tx,
+        }
+    }
+
+    /// Route a command to the remote layer. `Some(resp)` means the command was
+    /// fully handled remotely (Remote* control, remote Spawn, or a tagged
+    /// agent id like `dev:abc`); `None` means local dispatch proceeds.
+    fn try_remote(&self, cmd: &ClientCommand) -> Option<Response> {
+        match cmd {
+            ClientCommand::RemoteAdd { .. }
+            | ClientCommand::RemoteRemove { .. }
+            | ClientCommand::RemoteList => {
+                let sink_for = |_: &RemoteHost| {
+                    let bus = self.bus.clone();
+                    Arc::new(move |ev: DaemonEvent| {
+                        bus.publish(ev);
+                    }) as EventSink
+                };
+                self.remote.handle_control(cmd.clone(), sink_for)
+            }
+            ClientCommand::Spawn {
+                host: Some(host), ..
+            } => {
+                if self.remote.is_known_host(host) {
+                    self.remote.forward_if_remote(cmd.clone())
+                } else {
+                    Some(Response::Err(format!("unknown remote host {host}")))
+                }
+            }
+            ClientCommand::Kill { agent_id }
+            | ClientCommand::SendInput { agent_id, .. }
+            | ClientCommand::Attach { agent_id }
+            | ClientCommand::Logs { agent_id, .. }
+                if self.remote.is_remote_id(agent_id) =>
+            {
+                self.remote.forward_if_remote(cmd.clone())
+            }
+            _ => None,
         }
     }
 
@@ -50,6 +93,9 @@ impl Supervisor {
     /// Central command dispatch. Infallible at the type level: every failure is a
     /// `Response::Err` so clients always get exactly one reply per request.
     pub async fn handle(&self, cmd: ClientCommand) -> Response {
+        if let Some(resp) = self.try_remote(&cmd) {
+            return resp;
+        }
         match cmd {
             ClientCommand::Ping => Response::Pong {
                 version: herdr_protocol::PROTOCOL_VERSION.into(),
@@ -67,6 +113,7 @@ impl Supervisor {
                 cwd,
                 command,
                 args,
+                host: _, // `Some` never reaches here — try_remote routes it
             } => self.spawn(profile, cwd, command, args).await,
             ClientCommand::Kill { agent_id } => self.kill(&agent_id).await,
             ClientCommand::SendInput {
@@ -86,6 +133,10 @@ impl Supervisor {
                 max_bytes,
             } => self.logs(&agent_id, max_bytes),
             ClientCommand::Events => Response::Ok, // connection is now streaming
+            // Handled by `try_remote`; the match must still be exhaustive.
+            ClientCommand::RemoteAdd { .. }
+            | ClientCommand::RemoteRemove { .. }
+            | ClientCommand::RemoteList => unreachable!("handled by try_remote"),
         }
     }
 
@@ -270,6 +321,7 @@ mod tests {
                 cwd: "/nonexistent-herdr-test".into(),
                 command: "bash".into(),
                 args: vec![],
+                host: None,
             })
             .await;
         assert!(matches!(resp, Response::Err(_)));
@@ -298,5 +350,42 @@ mod tests {
             })
             .await;
         assert!(matches!(resp, Response::Err(_)));
+    }
+
+    #[tokio::test]
+    async fn spawn_on_unknown_remote_host_is_clean_error() {
+        let sup = Supervisor::new();
+        let resp = sup
+            .handle(ClientCommand::Spawn {
+                profile: "generic".into(),
+                cwd: "/tmp".into(),
+                command: "bash".into(),
+                args: vec![],
+                host: Some("nope".into()),
+            })
+            .await;
+        assert!(matches!(resp, Response::Err(e) if e.contains("unknown remote host")));
+    }
+
+    #[tokio::test]
+    async fn remote_list_roundtrip_through_supervisor() {
+        let sup = Supervisor::new();
+        assert!(matches!(
+            sup.handle(ClientCommand::RemoteList).await,
+            Response::RemoteHostList { hosts } if hosts.is_empty()
+        ));
+    }
+
+    #[tokio::test]
+    async fn tagged_id_on_local_only_registry_is_clean_error() {
+        // A tagged id whose host was never registered is NOT routed remotely;
+        // it falls through to local dispatch, which reports the agent unknown.
+        let sup = Supervisor::new();
+        let resp = sup
+            .handle(ClientCommand::Kill {
+                agent_id: "ghost:abc".into(),
+            })
+            .await;
+        assert!(matches!(resp, Response::Err(e) if e.contains("unknown agent")));
     }
 }

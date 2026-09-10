@@ -12,3 +12,10 @@ crossterm = "0.28"
 serde_json = { workspace = true }
 anyhow = { workspace = true }
 thiserror = { workspace = true }
+
+[dev-dependencies]
+# Integration tests boot the real daemon and drive it through this crate's
+# HerdrClient over a real Unix socket.
+herdr-daemon = { path = "../herdr-daemon" }
+tokio = { workspace = true }
+tempfile = "3"

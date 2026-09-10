@@ -20,7 +20,7 @@ pub use codec::{
 };
 pub use profile::AgentProfile;
 pub use socket::default_socket_path;
-pub use types::{AgentId, AgentInfo, AgentState, ClientCommand, DaemonEvent, Response};
+pub use types::{AgentId, AgentInfo, AgentState, ClientCommand, DaemonEvent, RemoteHost, Response};
 
 /// Version reported by `Ping`/`Pong`.
 pub const PROTOCOL_VERSION: &str = env!("CARGO_PKG_VERSION");

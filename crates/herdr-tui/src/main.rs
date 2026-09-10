@@ -3,21 +3,19 @@
 //! See `specs/11-phase-2-tui.md`. The TUI is just another socket client: it
 //! subscribes to the daemon's global event stream and issues the same
 //! `ClientCommand`s as the CLI. Closing the TUI never disturbs an agent.
-
-mod ansi;
-mod app;
-mod client;
-mod logs;
-mod ui;
+//!
+//! The reusable parts (client, app state, ANSI parsing, rendering) live in the
+//! library root (`src/lib.rs`) so integration tests exercise the real code.
 
 use anyhow::{Context, Result};
 use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyModifiers};
 use std::sync::mpsc::Receiver;
 use std::time::Duration;
 
-use app::{App, ConnState, Mode};
-use client::HerdrClient;
 use herdr_protocol::{ClientCommand, DaemonEvent};
+use herdr_tui::app::{App, ConnState, Mode};
+use herdr_tui::client::HerdrClient;
+use herdr_tui::ui;
 
 fn main() -> Result<()> {
     let mut client = HerdrClient::connect()

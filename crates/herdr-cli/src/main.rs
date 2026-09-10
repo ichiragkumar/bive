@@ -45,6 +45,9 @@ enum Cmd {
         /// Working directory for the agent.
         #[arg(long)]
         cwd: Option<String>,
+        /// Spawn on this registered remote host instead of locally.
+        #[arg(long)]
+        host: Option<String>,
         /// Command and args after `--`.
         #[arg(last = true)]
         command: Vec<String>,
@@ -70,6 +73,11 @@ enum Cmd {
     Kill { agent_id: String },
     /// Tap the raw NDJSON event stream.
     Events,
+    /// Manage remote hosts (Phase 4).
+    Remote {
+        #[command(subcommand)]
+        cmd: RemoteCmd,
+    },
     /// Stop the daemon and kill all agents.
     Shutdown,
     /// Register the daemon as a per-user service (launchd on macOS, systemd on Linux):
@@ -108,6 +116,27 @@ enum Cmd {
         #[arg(long)]
         explain: bool,
     },
+}
+
+#[derive(Subcommand)]
+enum RemoteCmd {
+    /// Register a host and connect its bridge.
+    Add {
+        /// Local alias for `spawn --host <name>` and the agent-id prefix.
+        name: String,
+        /// SSH destination: `host` or `user@host`.
+        ssh_target: String,
+        /// SSH port (default 22).
+        #[arg(long, default_value_t = 22)]
+        port: u16,
+        /// SSH username override (defaults to ssh config).
+        #[arg(long)]
+        user: Option<String>,
+    },
+    /// List registered hosts and bridge status.
+    List,
+    /// Disconnect and forget a host.
+    Remove { name: String },
 }
 
 fn main() {
@@ -266,6 +295,7 @@ fn run(cmd: Cmd) -> Result<(), HerdrError> {
         Cmd::Spawn {
             profile,
             cwd,
+            host,
             command,
         } => {
             if command.is_empty() {
@@ -287,6 +317,7 @@ fn run(cmd: Cmd) -> Result<(), HerdrError> {
                     cwd,
                     command: cmd0.clone(),
                     args: args.to_vec(),
+                    host,
                 },
             )?;
             match resp {
@@ -382,6 +413,7 @@ fn run(cmd: Cmd) -> Result<(), HerdrError> {
             println!("daemon shutting down");
             Ok(())
         }
+        Cmd::Remote { cmd } => remote_cmd(cmd),
         Cmd::Events => events_tap(),
         Cmd::Attach { agent_id } => attach(agent_id),
         Cmd::Replay {
@@ -663,21 +695,87 @@ fn attach(agent_id: String) -> Result<(), HerdrError> {
     Ok(())
 }
 
+/// `herdr remote add/list/remove` — Phase 4 fleet management.
+fn remote_cmd(cmd: RemoteCmd) -> Result<(), HerdrError> {
+    let mut conn = connect()?;
+    match cmd {
+        RemoteCmd::Add {
+            name,
+            ssh_target,
+            port,
+            user,
+        } => {
+            let resp = request(
+                &mut conn,
+                ClientCommand::RemoteAdd {
+                    host: herdr_protocol::RemoteHost {
+                        name: name.clone(),
+                        ssh_target,
+                        port,
+                        user,
+                    },
+                },
+            )?;
+            expect_ok(resp, "remote add")?;
+            println!("host {name} registered; bridge connecting in the background.");
+            println!("check: herdr remote list — then: herdr spawn --host {name} -- <cmd>");
+            Ok(())
+        }
+        RemoteCmd::List => {
+            let resp = request(&mut conn, ClientCommand::RemoteList)?;
+            match resp {
+                Response::RemoteHostList { hosts } => {
+                    if hosts.is_empty() {
+                        println!("no remote hosts — add one: herdr remote add <name> <ssh-target>");
+                        return Ok(());
+                    }
+                    println!(
+                        "{:<14} {:<24} {:<6} {:<10} USER",
+                        "NAME", "SSH TARGET", "PORT", "STATE"
+                    );
+                    for (h, connected) in hosts {
+                        println!(
+                            "{:<14} {:<24} {:<6} {:<10} {}",
+                            h.name,
+                            truncate(&h.ssh_target, 24),
+                            h.port,
+                            if connected { "● up" } else { "○ down" },
+                            h.user.as_deref().unwrap_or("-"),
+                        );
+                    }
+                    Ok(())
+                }
+                other => Err(HerdrError::Other(anyhow!("unexpected reply: {other:?}"))),
+            }
+        }
+        RemoteCmd::Remove { name } => {
+            let resp = request(
+                &mut conn,
+                ClientCommand::RemoteRemove { name: name.clone() },
+            )?;
+            expect_ok(resp, "remote remove")?;
+            println!("host {name} removed; its agents are gone from the fleet.");
+            Ok(())
+        }
+    }
+}
+
 fn print_agent_table(agents: &[AgentInfo]) {
     if agents.is_empty() {
         println!("no agents — spawn one with: herdr spawn -- <command>");
         return;
     }
     println!(
-        "{:<14} {:<12} {:<14} {:<28} COMMAND",
-        "ID", "PROFILE", "STATE", "CWD"
+        "{:<14} {:<12} {:<14} {:<10} {:<28} COMMAND",
+        "ID", "PROFILE", "STATE", "HOST", "CWD"
     );
     for a in agents {
         println!(
-            "{:<14} {:<12} {:<14} {:<28} {}",
+            "{:<14} {:<12} {:<14} {:<10} {:<28} {}",
             a.id,
             a.profile,
             format!("{} {}", a.state.glyph(), a.state.name()),
+            a.host.as_deref().unwrap_or("local"),
             truncate(&a.cwd, 28),
             truncate(&a.command, 48),
         );

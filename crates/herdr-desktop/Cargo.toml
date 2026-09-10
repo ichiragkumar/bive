@@ -3,7 +3,37 @@ name = "herdr-desktop"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
-description = "Tauri desktop client for herdr (Phase 3 — stub)"
+description = "Tauri 2 desktop client for herdr (Phase 3)"
+
+[features]
+default = []
+# Full Tauri app shell (window, tray, notifications). Requires the Tauri CLI
+# prerequisites (see specs/12-phase-3-desktop.md); everything else builds without.
+tauri = ["dep:tauri", "dep:tauri-plugin-shell", "dep:tauri-plugin-notification", "dep:tauri-plugin-dialog", "dep:tokio", "dep:anyhow", "dep:tracing", "dep:tracing-subscriber"]
 
 [dependencies]
 herdr-protocol = { path = "../herdr-protocol" }
+
+tauri = { version = "2", features = ["tray-icon"], optional = true }
+tauri-plugin-shell = { version = "2", optional = true }
+tauri-plugin-notification = { version = "2", optional = true }
+tauri-plugin-dialog = { version = "2", optional = true }
+serde = { workspace = true }
+tokio = { workspace = true, optional = true }
+anyhow = { workspace = true, optional = true }
+tracing = { workspace = true, optional = true }
+tracing-subscriber = { workspace = true, optional = true }
+
+thiserror = { workspace = true }
+serde_json = { workspace = true }
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dev-dependencies]
+tempfile = "3"
+
+[[bin]]
+name = "herdr-desktop"
+path = "src/bin/herdr-desktop.rs"
+required-features = ["tauri"]

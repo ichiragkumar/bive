@@ -60,6 +60,8 @@ fn parse_frame(line: &str) -> Result<Frame, ClientError> {
 
 /// Interior state shared between the client handle and its reader thread.
 struct Inner {
+    /// Socket path this client was dialed with (reconnect re-dials it).
+    sock: std::path::PathBuf,
     /// Write-side fd clone; the reader owns the read-side clone.
     writer: Mutex<Option<UnixStream>>,
     connected: AtomicBool,
@@ -78,11 +80,18 @@ pub struct HerdrClient {
 }
 
 impl HerdrClient {
+    /// Connect to the daemon at the default socket path.
     pub fn connect() -> Result<Self, ClientError> {
-        let sock = herdr_protocol::default_socket_path();
-        let stream = Self::dial(&sock)?;
+        Self::connect_to(&herdr_protocol::default_socket_path())
+    }
+
+    /// Connect to the daemon at an explicit socket path (tests, multi-daemon
+    /// tooling). Reconnects later re-dial the same path.
+    pub fn connect_to(sock: &std::path::Path) -> Result<Self, ClientError> {
+        let stream = Self::dial(sock)?;
         Ok(Self {
             inner: Arc::new(Inner {
+                sock: sock.to_path_buf(),
                 writer: Mutex::new(Some(stream)),
                 connected: AtomicBool::new(true),
                 req_id: AtomicU64::new(1),
@@ -170,7 +179,7 @@ impl HerdrClient {
     /// Reconnect with exponential backoff (a few attempts per call); respawns
     /// the reader thread on success so events keep flowing to the same receiver.
     pub fn reconnect(&mut self) {
-        let sock = herdr_protocol::default_socket_path();
+        let sock = self.inner.sock.clone();
         let mut backoff = 100u64;
         for _ in 0..4 {
             match Self::dial(&sock) {

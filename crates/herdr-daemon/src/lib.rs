@@ -7,8 +7,10 @@
 pub mod ansi;
 pub mod bus;
 pub mod ipc;
+pub mod media;
 pub mod pty;
 pub mod registry;
+pub mod remote;
 pub mod state;
 pub mod supervisor;
 

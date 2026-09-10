@@ -96,6 +96,31 @@ pub enum DaemonEvent {
     AgentRemoved {
         agent_id: AgentId,
     },
+    /// Structured media the agent signaled via the `HERDR-MEDIA` magic line.
+    /// Additive in v0.1 of the protocol (Phase 3); clients that don't render media
+    /// can ignore it.
+    AgentMedia {
+        agent_id: AgentId,
+        /// IANA type, e.g. `image/png`.
+        mime: String,
+        /// Base64-encoded payload (≤ 8 MiB raw after the daemon's size check).
+        data_base64: String,
+        caption: Option<String>,
+    },
+}
+
+/// A registered remote host (Phase 4). Agents spawned there look identical to
+/// local agents except `AgentInfo::host` is `Some(name)`.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct RemoteHost {
+    /// Local alias used in `spawn --host <name>`.
+    pub name: String,
+    /// SSH destination (`host` or `user@host`).
+    pub ssh_target: String,
+    pub port: u16,
+    /// Overrides the SSH username when set.
+    #[serde(default)]
+    pub user: Option<String>,
 }
 
 /// Client → daemon commands.
@@ -112,6 +137,9 @@ pub enum ClientCommand {
         cwd: String,
         command: String,
         args: Vec<String>,
+        /// Remote host alias (Phase 4); `None` = spawn locally.
+        #[serde(default)]
+        host: Option<String>,
     },
     Kill {
         agent_id: AgentId,
@@ -122,6 +150,16 @@ pub enum ClientCommand {
         text: String,
         raw: bool,
     },
+    /// Store a remote host and connect to it (Phase 4).
+    RemoteAdd {
+        host: RemoteHost,
+    },
+    /// Forget a remote host and tear down its bridge.
+    RemoteRemove {
+        name: String,
+    },
+    /// List registered remote hosts.
+    RemoteList,
     /// Stream one agent's output + state changes + exit on this connection.
     Attach {
         agent_id: AgentId,
@@ -150,6 +188,10 @@ pub enum Response {
         version: String,
         uptime_ms: u64,
         agents: usize,
+    },
+    /// Registered remote hosts with bridge status (Phase 4).
+    RemoteHostList {
+        hosts: Vec<(RemoteHost, bool)>,
     },
 }
 
@@ -203,7 +245,15 @@ mod tests {
             agent_id: info.id.clone(),
             code: 1,
         });
-        roundtrip(DaemonEvent::AgentRemoved { agent_id: info.id });
+        roundtrip(DaemonEvent::AgentRemoved {
+            agent_id: info.id.clone(),
+        });
+        roundtrip(DaemonEvent::AgentMedia {
+            agent_id: info.id,
+            mime: "image/png".into(),
+            data_base64: "aGVsbG8=".into(),
+            caption: Some("build chart".into()),
+        });
     }
 
     #[test]
@@ -217,7 +267,18 @@ mod tests {
             cwd: "/tmp".into(),
             command: "bash".into(),
             args: vec!["-lc".into(), "echo hi".into()],
+            host: None,
         });
+        roundtrip(ClientCommand::RemoteAdd {
+            host: RemoteHost {
+                name: "dev".into(),
+                ssh_target: "box.example.com".into(),
+                port: 22,
+                user: Some("ops".into()),
+            },
+        });
+        roundtrip(ClientCommand::RemoteRemove { name: "dev".into() });
+        roundtrip(ClientCommand::RemoteList);
         roundtrip(ClientCommand::Kill {
             agent_id: "x".into(),
         });
@@ -246,6 +307,7 @@ mod tests {
         roundtrip(Response::LogChunk {
             payload: "abc".into(),
         });
+        roundtrip(Response::RemoteHostList { hosts: vec![] });
         roundtrip(Response::Pong {
             version: "0.1.0".into(),
             uptime_ms: 5,

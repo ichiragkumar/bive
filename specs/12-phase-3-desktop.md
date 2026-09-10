@@ -1,6 +1,6 @@
 # Phase 3 Spec — Desktop Client (Tauri 2)
 
-> Status: **Spec — not yet implemented**. Depends on: Phase 1 contract — no daemon changes required except one additive protocol extension defined below.
+> Status: **Implemented** — protocol `AgentMedia` extension + daemon media pipeline (10 tests), TUI media placeholders, Tauri-free desktop core (bridge/notify/tray/ui-state, 18 tests), Tauri 2 shell + static UI behind `--features tauri` (compiles clean). Full `tauri dev`/bundle run needs the Tauri CLI prerequisites on the build machine. Depends on: Phase 1 contract — one additive protocol extension was added as specified.
 
 ## Goal
 

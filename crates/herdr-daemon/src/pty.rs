@@ -21,6 +21,7 @@ use herdr_protocol::{AgentId, DaemonEvent};
 
 use crate::ansi::AnsiStripper;
 use crate::bus::EventBus;
+use crate::media::{with_agent, MediaScanner};
 use crate::registry::{now_unix_ms, KillHandle, Registry};
 
 /// Reader buffer size per agent.
@@ -87,13 +88,23 @@ pub fn spawn_agent(spec: SpawnSpec, ctx: SpawnContext) -> Result<PtyHandles> {
     tokio::task::spawn_blocking(move || {
         let mut buf = [0u8; READ_BUF];
         let mut stripper = AnsiStripper::new();
+        let mut media = MediaScanner::new();
         loop {
             match reader.read(&mut buf) {
                 Ok(0) => break, // EOF — agent exited
                 Ok(n) => {
                     let chunk = &buf[..n];
-                    let raw = String::from_utf8_lossy(chunk).into_owned();
-                    let stripped = String::from_utf8_lossy(&stripper.feed_raw(chunk)).into_owned();
+
+                    // Media magic lines are extracted first; what remains is the
+                    // passthrough text that every other consumer sees.
+                    let scanned = media.feed(chunk);
+                    for ev in scanned.media_events {
+                        bus.publish(with_agent(ev, &agent_id));
+                    }
+                    let passthrough = scanned.passthrough;
+                    let raw = passthrough;
+                    let stripped =
+                        String::from_utf8_lossy(&stripper.feed_raw(raw.as_bytes())).into_owned();
 
                     registry.with_agent(&agent_id, |e| e.push_ring(&raw));
                     registry.update_info(&agent_id, |i| i.last_output_unix_ms = now_unix_ms());
@@ -111,13 +122,20 @@ pub fn spawn_agent(spec: SpawnSpec, ctx: SpawnContext) -> Result<PtyHandles> {
                         });
                     }
 
-                    bus.publish(DaemonEvent::AgentOutput {
-                        agent_id: agent_id.clone(),
-                        payload: raw,
-                    });
+                    if !raw.is_empty() {
+                        bus.publish(DaemonEvent::AgentOutput {
+                            agent_id: agent_id.clone(),
+                            payload: raw,
+                        });
+                    }
                 }
                 Err(_) => break,
             }
+        }
+        // Flush a trailing unterminated line at EOF.
+        let tail = media.finish();
+        for ev in tail.media_events {
+            bus.publish(with_agent(ev, &agent_id));
         }
     });
 

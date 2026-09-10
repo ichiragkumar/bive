@@ -7,6 +7,7 @@ members = [
     "crates/herdr-tui",
     "crates/herdr-desktop",
     "crates/herdr-remote",
+    "crates/herdr-agent",
     "crates/herdr-plugin",
 ]
 

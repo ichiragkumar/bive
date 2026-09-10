@@ -144,6 +144,20 @@ impl App {
                     view.logs.feed(&payload);
                 }
             }
+            DaemonEvent::AgentMedia {
+                agent_id,
+                mime,
+                caption,
+                ..
+            } => {
+                // Terminals can't render media; note it inline like other clients do.
+                if let Some(view) = self.agents.get_mut(&agent_id) {
+                    match caption {
+                        Some(c) => view.logs.feed(&format!("\n─ ▣ media: {mime} — {c} ─\n")),
+                        None => view.logs.feed(&format!("\n─ ▣ media: {mime} ─\n")),
+                    }
+                }
+            }
             DaemonEvent::StateChange { agent_id, state } => {
                 if let Some(view) = self.agents.get_mut(&agent_id) {
                     view.info.state = state;
@@ -179,6 +193,7 @@ impl App {
                 }
             }
             Response::Ok | Response::AgentCreated { .. } | Response::Pong { .. } => {}
+            Response::RemoteHostList { .. } => {} // TUI doesn't render hosts (yet)
             Response::Err(e) => self.flash = Some(format!("error: {e}")),
         }
     }
