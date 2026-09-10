@@ -50,9 +50,13 @@ export function stateName(state: unknown): string {
 
 /** Last visible line of a log tail, for list rows. */
 export function lastLine(text: string): string {
-  const clean = text.replace(/\x1b\[[?0-9;]*[a-zA-Z]/g, "");
-  const lines = clean.trimEnd().split("\n");
+  const lines = stripAnsi(text).trimEnd().split("\n");
   return lines[lines.length - 1] || "";
+}
+
+/** Strip ANSI CSI sequences (Chat turns render plain text; Terminal re-colors). */
+export function stripAnsi(text: string): string {
+  return text.replace(/\x1b\[[?0-9;]*[a-zA-Z]/g, "");
 }
 
 /** Tool-call markers, mirroring `is_tool_line` in ui_state.rs (Rust).

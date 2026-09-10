@@ -59,7 +59,26 @@ impl Bridge {
     pub fn connect() -> Result<Self, BridgeError> {
         let sock = herdr_protocol::default_socket_path();
         let stream = Self::dial(&sock)?;
-        Ok(Self {
+        Ok(Self::with_stream(stream))
+    }
+
+    /// Start disconnected (daemon down at launch). Commands fail with
+    /// `Closed` until a supervisor drives `reconnect()` to success — the UI
+    /// shows its disconnected state instead of the process exiting.
+    pub fn disconnected() -> Self {
+        Self {
+            inner: Arc::new(Inner {
+                writer: Mutex::new(None),
+                connected: AtomicBool::new(false),
+                req_id: AtomicU64::new(1),
+                pending: Mutex::new(HashMap::new()),
+                listeners: Mutex::new(Vec::new()),
+            }),
+        }
+    }
+
+    fn with_stream(stream: UnixStream) -> Self {
+        Self {
             inner: Arc::new(Inner {
                 writer: Mutex::new(Some(stream)),
                 connected: AtomicBool::new(true),
@@ -67,7 +86,7 @@ impl Bridge {
                 pending: Mutex::new(HashMap::new()),
                 listeners: Mutex::new(Vec::new()),
             }),
-        })
+        }
     }
 
     fn dial(sock: &std::path::Path) -> Result<UnixStream, BridgeError> {

@@ -34,7 +34,14 @@
     logs_cmd: async (args) => ({ payload: LOG_TAILS[args.agentId] || "" }),
     ping_cmd: async () => true,
     snapshot_cmd: async () => ({
-      cards: snapCards.map((c) => ({ ...c })),
+      // Deep-copy: the bundle mutates its snapshot in place on live events,
+      // exactly like the real Rust snapshot (fresh objects over the socket).
+      // Sharing references here would double-apply simulator updates.
+      cards: snapCards.map((c) => ({
+        ...c,
+        info: { ...c.info },
+        media: (c.media || []).map((m) => ({ ...m })),
+      })),
       chat: Object.fromEntries(Object.entries(snapChat).map(([k, v]) => [k, v.map((t) => ({ ...t })) ])),
     }),
     remote_list_cmd: async () => registryHosts.map((h) => [{ ...h }, true]),
@@ -145,36 +152,108 @@
     }, 600);
   }
 
+  function simError(id) {
+    // Stable errored state for screenshots (unlike simKill: no removal).
+    pushEvent("AgentExited", { agent_id: id, code: 1 });
+    const c = snapCards.find((x) => x.info.id === id);
+    if (c) c.info.state = "Errored";
+  }
+
   // ---------- scripted boot -------------------------------------------------
+  // ?scenario=empty|busy|blocked|errored|media|remote|disconnected|
+  //            reconnecting|no-agent-selected|spawn-modal-open (default busy).
+  // The preview banner links each scenario; regression tests assert the
+  // branches below exist.
+  const SCENARIOS = ["empty", "busy", "blocked", "errored", "media", "remote", "disconnected", "reconnecting", "no-agent-selected", "spawn-modal-open"];
+  function currentScenario() {
+    try {
+      const s = new URLSearchParams(location.search).get("scenario");
+      return SCENARIOS.includes(s) ? s : "busy";
+    } catch {
+      return "busy";
+    }
+  }
   let armed = false;
   let booted = false;
   function arm() {
     armed = true;
     setTimeout(() => boot(), 0);
   }
+  function seedBusy() {
+    const a = simSpawn("claude-code");
+    const b = simSpawn("codex");
+    const c = simSpawn("bash");
+    const d = simSpawn("bash", "dev");
+    chatAppend(a, "Human", "refactor the auth module");
+    setTimeout(() => simOutput(a, "Planning refactor across 3 crates…\n"), 500);
+    setTimeout(() => simState(a, "Working"), 600);
+    setTimeout(() => simOutput(b, "running tests… 41 passed\n"), 800);
+    setTimeout(() => simState(b, "Idle"), 900);
+    setTimeout(() => simOutput(c, "$ tail -f deploy.log\n"), 1100);
+    setTimeout(() => simState(c, "Blocked"), 1200); // waiting on input
+    setTimeout(() => simMedia(a), 1400);
+  }
+  function seedBlocked() {
+    const c = simSpawn("bash");
+    setTimeout(() => simOutput(c, "$ tail -f deploy.log\n"), 500);
+    setTimeout(() => simState(c, "Blocked"), 700); // waiting on input
+  }
+  function seedErrored() {
+    const e = simSpawn("codex");
+    setTimeout(() => simOutput(e, "thread 'main' panicked at src/main.rs:42\n"), 500);
+    setTimeout(() => simError(e), 700);
+  }
+  function seedMedia() {
+    const a = simSpawn("claude-code");
+    chatAppend(a, "Human", "chart the latency p99");
+    setTimeout(() => simMedia(a), 600);
+  }
+  function seedRemote() {
+    const a = simSpawn("bash", "dev");
+    const b = simSpawn("codex", "dev");
+    chatAppend(a, "Human", "check the deploy log");
+    setTimeout(() => simOutput(a, "$ tail -f /var/log/deploy.log\n"), 500);
+    setTimeout(() => simOutput(b, "reviewing PR #418…\n"), 700);
+  }
   function boot() {
     if (!armed || booted) return;
     booted = true;
+    const scenario = currentScenario();
+    if (scenario === "disconnected") {
+      // No daemon: the app must show its disconnected state + retry.
+      setTimeout(() => emit("herdr://conn", "disconnected"), 400);
+      return;
+    }
     // Connection comes up.
     setTimeout(() => {
       // Seed the fleet first, THEN announce the connection — the app pulls a
       // snapshot on "connected", and that snapshot must already contain the
       // fleet or it would wipe the cards the spawn events just created.
-      const a = simSpawn("claude-code");
-      const b = simSpawn("codex");
-      const c = simSpawn("bash");
-      const d = simSpawn("bash", "dev");
-      chatAppend(a, "Human", "refactor the auth module");
-      chatAppend(a, "Agent", "Planning refactor across 3 crates…");
+      if (scenario === "busy" || scenario === "reconnecting" || scenario === "no-agent-selected" || scenario === "spawn-modal-open") seedBusy();
+      else if (scenario === "blocked") seedBlocked();
+      else if (scenario === "errored") seedErrored();
+      else if (scenario === "media") seedMedia();
+      else if (scenario === "remote") seedRemote();
+      // "empty" seeds nothing: the app must show its empty state.
       emit("herdr://conn", "connected");
-      setTimeout(() => simOutput(a, "Planning refactor across 3 crates…\n"), 500);
-      setTimeout(() => simState(a, "Working"), 600);
-      setTimeout(() => simOutput(b, "running tests… 41 passed\n"), 800);
-      setTimeout(() => simState(b, "Idle"), 900);
-      setTimeout(() => simOutput(c, "$ tail -f deploy.log\n"), 1100);
-      setTimeout(() => simState(c, "Blocked"), 1200); // waiting on input
-      setTimeout(() => simMedia(a), 1400);
-      // Ambient chatter: keep the fleet alive.
+      if (scenario === "reconnecting") {
+        // Fleet goes stale right after first paint (J6 demo).
+        setTimeout(() => emit("herdr://conn", "reconnecting"), 2500);
+      }
+      if (scenario === "no-agent-selected") {
+        // Deselect after first paint: detail empty state, no inert controls.
+        setTimeout(() => {
+          const app = window.__HERDR_APP__;
+          if (app && app.store) app.store.clearSelection();
+        }, 1200);
+      }
+      if (scenario === "spawn-modal-open") {
+        setTimeout(() => {
+          const btn = document.getElementById("btn-spawn");
+          if (btn) btn.click();
+        }, 1200);
+      }
+      // Ambient chatter: keep the fleet alive (no-op when empty).
       setInterval(() => {
         if (!snapCards.length) return;
         const pick = snapCards[Math.floor(Math.random() * snapCards.length)];
@@ -190,6 +269,6 @@
     }, 400);
   }
 
-  window.__HERDR_PREVIEW__ = { boot, simSpawn, simKill, simState, simOutput };
+  window.__HERDR_PREVIEW__ = { boot, simSpawn, simKill, simState, simOutput, currentScenario, SCENARIOS };
   boot(); // no-op until the app registers its conn listener (arm())
 })();

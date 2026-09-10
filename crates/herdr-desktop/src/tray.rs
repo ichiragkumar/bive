@@ -6,8 +6,14 @@ use herdr_protocol::{AgentInfo, AgentState, DaemonEvent};
 use std::collections::HashMap;
 
 /// Traffic-light aggregate for the fleet.
+///
+/// Priority order (first match wins): daemon unreachable beats everything,
+/// then errored > blocked > healthy > empty. Documented so tray, tooltip,
+/// and webview header all agree.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Dot {
+    /// Daemon unreachable — distinct from "no agents" (Gray).
+    Offline,
     /// Nothing running.
     Gray,
     /// All agents fine (working/idle/exited).
@@ -19,9 +25,19 @@ pub enum Dot {
 }
 
 /// Current fleet picture as shown in the tray.
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Clone)]
 pub struct TrayState {
     pub agents: HashMap<String, AgentState>,
+    pub connected: bool,
+}
+
+impl Default for TrayState {
+    fn default() -> Self {
+        Self {
+            agents: HashMap::new(),
+            connected: true,
+        }
+    }
 }
 
 impl TrayState {
@@ -29,8 +45,15 @@ impl TrayState {
         Self::default()
     }
 
-    /// Overall dot: red > amber > green > gray.
+    pub fn set_connected(&mut self, connected: bool) {
+        self.connected = connected;
+    }
+
+    /// Overall dot: offline > red > amber > green > gray.
     pub fn dot(&self) -> Dot {
+        if !self.connected {
+            return Dot::Offline;
+        }
         let mut dot = if self.agents.is_empty() {
             Dot::Gray
         } else {
@@ -64,6 +87,9 @@ impl TrayState {
 
     /// Tooltip text, e.g. `herdr — 3 agents (1 working, 1 blocked)`.
     pub fn tooltip(&self) -> String {
+        if !self.connected {
+            return "herdr — daemon unreachable".into();
+        }
         let (total, working, blocked, errored) = self.counts();
         if total == 0 {
             return "herdr — no agents".into();
@@ -198,5 +224,20 @@ mod tests {
             agent_id: "a".into(),
         });
         assert_eq!(t.dot(), Dot::Gray);
+    }
+
+    #[test]
+    fn offline_beats_everything() {
+        let mut t = TrayState::new();
+        t.sync_from(&[
+            info("a", AgentState::Working),
+            info("b", AgentState::Errored("x".into())),
+        ]);
+        assert_eq!(t.dot(), Dot::Red);
+        t.set_connected(false);
+        assert_eq!(t.dot(), Dot::Offline);
+        assert_eq!(t.tooltip(), "herdr — daemon unreachable");
+        t.set_connected(true);
+        assert_eq!(t.dot(), Dot::Red);
     }
 }

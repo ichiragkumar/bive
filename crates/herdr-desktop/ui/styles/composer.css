@@ -1,9 +1,25 @@
 /* Composer: single send bar below the detail tabs. */
 #composer-bar {
   display: flex;
-  gap: 8px;
+  flex-direction: column;
+  gap: 6px;
   padding: 10px 14px;
   border-top: 1px solid var(--border);
   background: var(--panel);
 }
-#composer { flex: 1; }
+#composer-bar.blocked {
+  border-top: 2px solid var(--blocked);
+}
+#composer-main { display: flex; gap: 8px; align-items: flex-end; }
+#composer { flex: 1; resize: vertical; min-height: 34px; font-family: var(--font-sans); }
+.raw-toggle {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  white-space: nowrap;
+}
+#composer-warn { color: var(--blocked); font-size: 12px; }
+#composer-warn[hidden] { display: none; }

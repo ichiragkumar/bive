@@ -66,7 +66,35 @@
 }
 .chat-notice { color: var(--text-muted); padding: 20px 4px; }
 
+/* Exited/errored bar (composer replacement for dead agents). */
+.warn-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-top: 1px solid var(--blocked);
+  background: var(--panel);
+  font-size: 13px;
+  color: var(--text-soft);
+}
+.warn-bar[hidden] { display: none; }
+.warn-bar button { margin-left: 4px; }
+
+/* Paused-follow pill */
+#paused-pill {
+  border-color: var(--blocked);
+  color: var(--blocked);
+}
+#paused-pill[hidden] { display: none; }
+
 /* Terminal tab */
+#terminal-toolbar {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+#terminal-toolbar .muted { margin-left: auto; font-size: 11px; font-family: var(--font-mono); }
 .log {
   margin: 0;
   padding: 10px;
@@ -80,6 +108,49 @@
   font-size: 12px;
   line-height: 1.55;
   font-variant-numeric: tabular-nums;
+}
+
+/* Events tab */
+#events-timeline { list-style: none; margin: 0; padding: 0; }
+#events-timeline .ev {
+  display: grid;
+  grid-template-columns: 80px 90px 1fr;
+  gap: 10px;
+  padding: 5px 4px;
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+}
+.ev-kind { font-family: var(--font-mono); color: var(--working); }
+.ev-exited .ev-kind, .ev-removed .ev-kind { color: var(--text-muted); }
+.ev-state .ev-kind { color: var(--blocked); }
+.ev-text { font-family: var(--font-mono); word-break: break-word; }
+
+/* Media tab gallery */
+#media-gallery { display: flex; flex-wrap: wrap; gap: 12px; }
+#media-gallery figure { margin: 0; max-width: 320px; }
+#media-gallery img {
+  max-width: 300px;
+  max-height: 240px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+#media-gallery figcaption { font-size: 11px; color: var(--text-muted); margin: 4px 0; }
+.media-blob {
+  padding: 20px;
+  border: 1px dashed var(--border-strong);
+  border-radius: 8px;
+  font-family: var(--font-mono);
+}
+
+/* Detail empty state */
+#detail-empty h3 { font-size: 15px; }
+#detail-empty p { color: var(--text-soft); }
+#detail-empty pre {
+  background: var(--void);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px;
+  font-size: 12px;
 }
 
 /* Info tab */

@@ -3,7 +3,16 @@
   border-right: 1px solid var(--border);
   overflow-y: auto;
   min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
+#fleet-tools {
+  display: flex;
+  gap: 6px;
+  padding: 8px 8px 0;
+}
+#fleet-search { flex: 1; min-width: 0; }
+#fleet-sort { max-width: 130px; }
 #agent-list { list-style: none; margin: 0; padding: 8px; display: flex; flex-direction: column; gap: 6px; }
 .agent-row {
   background: var(--panel);
@@ -17,6 +26,13 @@
 }
 .agent-row:hover { border-color: var(--accent); }
 .agent-row.selected { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+/* Needs-attention rows carry a left accent bar (never color-only: badge text stays). */
+.agent-row.needs-attention { border-left: 3px solid var(--blocked); }
+.agent-row.pending { opacity: 0.75; }
+.agent-row.pending .badge { animation: pulse 1s ease-in-out infinite; }
+@keyframes pulse {
+  50% { opacity: 0.45; }
+}
 .agent-row .id { font-family: var(--font-mono); font-size: 12px; }
 .agent-row .profile { font-size: 11px; color: var(--text-muted); text-align: right; font-family: var(--font-mono); }
 .badge {
@@ -43,9 +59,57 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
+.agent-row .meta {
+  grid-column: 1 / -1;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.agent-row .spark { grid-column: 1 / -1; height: 14px; }
+.spark span {
+  display: inline-block;
+  width: 4px;
+  margin-right: 1px;
+  background: var(--working);
+  border-radius: 1px;
+  vertical-align: bottom;
+  opacity: 0.8;
+}
+.row-kill {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  padding: 0 7px;
+  display: none;
+}
+.row-copy {
+  position: absolute;
+  top: 4px;
+  right: 34px;
+  padding: 0 7px;
+  display: none;
+}
+.agent-row { position: relative; }
+.agent-row:hover .row-kill, .agent-row:hover .row-copy { display: block; }
+.cap-notice { padding: 8px 12px; font-size: 12px; }
 .empty-row {
   color: var(--text-muted);
   text-align: center;
   padding: 40px 12px;
   list-style: none;
 }
+.empty-state { list-style: none; padding: 24px 16px; }
+.empty-state h3 { font-size: 15px; margin: 0 0 8px; }
+.empty-state p { color: var(--text-soft); font-size: 13px; }
+.empty-state pre {
+  background: var(--void);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px;
+  font-size: 12px;
+  white-space: pre-wrap;
+  margin: 10px 0;
+}
+.empty-state button { margin-right: 8px; margin-top: 6px; }

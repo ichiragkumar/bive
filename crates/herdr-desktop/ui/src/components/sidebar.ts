@@ -1,38 +1,61 @@
-// Sidebar: host groups (Local + remotes), spawn with profile picker, filter.
+// Sidebar: navigation, not a form. FLEET state filters + HOSTS with counts +
+// profile quick-spawn chips. Single-select within a section; counts live.
 
 import type { TauriInvoke } from "../globals.js";
-import type { RemoteHostEntry, Store } from "../store.js";
+import type { Store } from "../store.js";
+import { confirmModal } from "./modal.js";
 import { esc, req } from "./shared.js";
+import { openSpawnModal } from "./spawn-modal.js";
+import { toast } from "./toasts.js";
 
-export const PROFILES = ["generic", "claude-code", "codex", "bash"];
+const FLEET_ROWS: Array<[string, string, string]> = [
+  ["all", "All", "●"],
+  ["attention", "Needs attention", "■"],
+  ["Working", "Working", "●"],
+  ["Blocked", "Blocked", "■"],
+  ["Errored", "Errored", "✖"],
+  ["Idle", "Idle", "◌"],
+  ["Exited", "Exited", "·"],
+];
+
+const PROFILE_CHIPS: Array<[string, string]> = [
+  ["bash", "Bash"],
+  ["claude-code", "Claude Code"],
+  ["codex", "Codex"],
+  ["generic", "Generic"],
+];
 
 export function mountSidebar(store: Store, invoke: TauriInvoke): void {
   const hostList = req("host-list");
-  const profilePicker = req<HTMLSelectElement>("profile-picker");
-  const filterSel = req<HTMLSelectElement>("filter");
+  const fleetList = req("fleet-filters");
+  const chips = req("profile-chips");
 
-  req("btn-spawn").onclick = async () => {
-    await invoke("spawn_agent_cmd", {
-      profile: profilePicker.value,
-      cwd: "/tmp",
-      command: window.__HERDR_SHELL__ || "/bin/bash",
-      args: [],
-      host: store.state.selectedHost,
-    });
-  };
+  for (const [profile, label] of PROFILE_CHIPS) {
+    const b = document.createElement("button");
+    b.className = "ghost chip-btn";
+    b.textContent = label;
+    b.title = `spawn ${label} agent…`;
+    b.onclick = () => openSpawnModal(store, invoke, { profile });
+    chips.appendChild(b);
+  }
 
   req("btn-add-remote").onclick = async () => {
     const name = window.prompt("Remote name (used with spawn --host):");
     if (!name) return;
     const sshTarget = window.prompt(`SSH target for "${name}" (host or user@host):`);
     if (!sshTarget) return;
-    await invoke("remote_add_cmd", { name, sshTarget, port: 22, user: null });
+    try {
+      await invoke("remote_add_cmd", { name, sshTarget, port: 22, user: null });
+      toast("ok", `Remote ${name} added`);
+    } catch (e) {
+      toast("err", `Add remote failed: ${String(e)}`);
+    }
     refreshHosts();
   };
 
   async function refreshHosts(): Promise<void> {
     try {
-      const hosts = (await invoke("remote_list_cmd")) as RemoteHostEntry[];
+      const hosts = (await invoke("remote_list_cmd")) as import("../store.js").RemoteHostEntry[];
       store.applyHosts(hosts);
     } catch {
       /* daemon without remotes support: sidebar stays local-only */
@@ -48,6 +71,7 @@ export function mountSidebar(store: Store, invoke: TauriInvoke): void {
       lastFleetKey = key;
       refreshHosts();
     }
+    renderFleet(s.filter);
     renderHosts();
   });
 
@@ -55,16 +79,60 @@ export function mountSidebar(store: Store, invoke: TauriInvoke): void {
     const li = (e.target as HTMLElement | null)?.closest("li[data-host]") as HTMLElement | null;
     if (!li) return;
     if ((e.target as HTMLElement | null)?.closest("button.rm-host")) {
-      await invoke("remote_remove_cmd", { name: li.dataset.host as string });
-      if (store.state.selectedHost === li.dataset.host) store.state.selectedHost = null;
-      refreshHosts();
+      const name = li.dataset["host"] as string;
+      const live = store.state.cards.filter((c) => (c.info.host || null) === name).length;
+      if (
+        await confirmModal({
+          title: "Forget host",
+          body: live
+            ? `Forget host ${name}? Its ${live} live agent${live === 1 ? "" : "s"} will be disconnected.`
+            : `Forget host ${name}?`,
+          confirmLabel: "forget host",
+        })
+      ) {
+        try {
+          await invoke("remote_remove_cmd", { name });
+          toast("ok", `Host ${name} forgotten`);
+        } catch (err) {
+          toast("err", `Remove failed: ${String(err)}`);
+        }
+        if (store.state.selectedHost === name) store.state.selectedHost = null;
+        refreshHosts();
+      }
       return;
     }
-    store.state.selectedHost = li.dataset.host === "" ? null : (li.dataset.host as string);
+    store.state.selectedHost = li.dataset["host"] === "" ? null : (li.dataset["host"] as string);
     renderHosts();
   };
 
-  filterSel.onchange = () => store.setFilter(filterSel.value);
+  fleetList.onclick = (e: MouseEvent) => {
+    const li = (e.target as HTMLElement | null)?.closest("li[data-filter]") as HTMLElement | null;
+    if (!li) return;
+    store.setFilter(li.dataset["filter"] as string);
+  };
+
+  function renderFleet(active: string): void {
+    const c = store.summaryCounts();
+    const counts: Record<string, number> = {
+      all: c.total,
+      attention: c.blocked + c.errored,
+      Working: c.working,
+      Blocked: c.blocked,
+      Errored: c.errored,
+      Idle: c.idle,
+      Exited: c.exited,
+    };
+    fleetList.innerHTML = "";
+    for (const [key, label, glyph] of FLEET_ROWS) {
+      const li = document.createElement("li");
+      if (active === key) li.classList.add("selected");
+      li.dataset["filter"] = key;
+      li.innerHTML =
+        `<span class="glyph">${glyph}</span><span class="host-name">${label}</span>` +
+        `<span class="count">${counts[key] ?? 0}</span>`;
+      fleetList.appendChild(li);
+    }
+  }
 
   function renderHosts(): void {
     const s = store.state;
@@ -89,13 +157,14 @@ export function mountSidebar(store: Store, invoke: TauriInvoke): void {
     hostList.innerHTML = "";
     for (const [key, label, count] of rows) {
       const li = document.createElement("li");
-      li.dataset.host = key;
+      li.dataset["host"] = key;
       if ((store.state.selectedHost || "") === key) li.classList.add("selected");
       li.innerHTML = `<span class="host-name">${label}</span><span class="count">${count}</span>`;
       if (key !== "") {
         const rm = document.createElement("button");
         rm.className = "rm-host ghost";
         rm.title = `forget host ${key}`;
+        rm.setAttribute("aria-label", `forget host ${key}`);
         rm.textContent = "×";
         li.appendChild(rm);
       }

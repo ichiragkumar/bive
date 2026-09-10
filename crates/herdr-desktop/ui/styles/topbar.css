@@ -1,4 +1,4 @@
-/* Topbar: conn dot, title, fleet aggregate, kill-all. */
+/* Topbar: pill, chips, menu. */
 #topbar {
   display: flex;
   align-items: center;
@@ -9,3 +9,44 @@
 }
 #topbar h1 { font-size: 15px; margin: 0; }
 #btn-side { padding: 5px 9px; }
+.pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 2px 10px;
+}
+.pill.up { color: var(--exited); border-color: var(--exited); }
+.pill.recon { color: var(--blocked); border-color: var(--blocked); }
+.pill.down { color: var(--errored); border-color: var(--errored); }
+button.primary { border-color: var(--accent); }
+button.chip {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  border-radius: 999px;
+  padding: 1px 8px;
+  margin-right: 6px;
+}
+button.chip.on { border-color: var(--accent); color: var(--accent); }
+.chip.Blocked { color: var(--blocked); }
+.chip.Errored { color: var(--errored); }
+.chip.Working { color: var(--working); }
+.chip.stale { color: var(--blocked); border-style: dashed; }
+#menu-pop {
+  position: fixed;
+  z-index: 80;
+  background: var(--panel-2);
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 200px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+}
+#menu-pop button { text-align: left; border: none; background: none; }
+#menu-pop button:hover { background: var(--panel-3); }

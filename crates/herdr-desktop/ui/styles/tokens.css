@@ -116,8 +116,12 @@ button {
 }
 button:hover { border-color: var(--accent); }
 button.danger:hover { border-color: var(--errored); color: var(--errored); }
+button:disabled, input:disabled, textarea:disabled, select:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
 button.ghost { background: none; border-style: dashed; }
-select, input {
+select, input, textarea {
   background: var(--void-2);
   color: var(--text);
   border: 1px solid var(--border);
@@ -125,6 +129,36 @@ select, input {
   padding: 5px 8px;
   font-family: var(--font-sans);
 }
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+/* Summary chips + connection banner */
+.chip {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 1px 8px;
+  margin-right: 6px;
+  white-space: nowrap;
+}
+.chip.Blocked { color: var(--blocked); border-color: var(--blocked); }
+.chip.Errored { color: var(--errored); border-color: var(--errored); }
+.chip.Working { color: var(--working); }
+.chip.stale { color: var(--blocked); border-style: dashed; }
+.banner {
+  padding: 8px 14px;
+  font-size: 13px;
+  background: var(--panel-2);
+  border-bottom: 1px solid var(--blocked);
+  color: var(--text-soft);
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+.banner[hidden] { display: none; }
 
 .terminal, .metric, .command {
   font-variant-numeric: tabular-nums;
@@ -135,6 +169,11 @@ select, input {
   display: grid;
   grid-template-columns: 240px 340px 1fr;
   min-height: 0;
+}
+
+/* Panel elevation: 1px border + top inner highlight so panes sit above the void. */
+#sidebar, #agent-list-pane, #detail-pane, #topbar {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
 }
 
 /* Narrow windows: sidebar becomes a toggleable drawer. */
@@ -154,3 +193,15 @@ body.no-side #sidebar { display: none; }
   max-width: 640px;
   font-family: var(--font-sans);
 }
+
+/* Static-preview chrome (this markup only exists in target/preview/). */
+.preview-banner {
+  padding: 8px 14px;
+  background: var(--panel-2);
+  border-bottom: 1px solid var(--border);
+  color: var(--text-muted);
+  font-size: 12px;
+}
+.preview-banner code { font-family: var(--font-mono); color: var(--text-soft); }
+.preview-banner .scenario-row { margin-left: 16px; }
+.preview-banner .scenario-row a { color: var(--working); margin: 0 4px; }

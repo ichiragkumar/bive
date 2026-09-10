@@ -23,6 +23,18 @@ BANNER = """<div class="preview-banner">
       static preview of <code>crates/herdr-desktop/ui</code> — simulated fleet;
       the real app is the Tauri shell (<code>cargo run -p herdr-desktop --features tauri</code>)
       — rebuild the bundle first with <code>sh scripts/build_ui.sh</code>
+      <span class="scenario-row">Scenario:
+        <a href="?scenario=empty">Empty</a>
+        <a href="?scenario=busy">Busy fleet</a>
+        <a href="?scenario=blocked">Blocked</a>
+        <a href="?scenario=errored">Errored</a>
+        <a href="?scenario=media">Media</a>
+        <a href="?scenario=remote">Remote</a>
+        <a href="?scenario=disconnected">Disconnected</a>
+        <a href="?scenario=reconnecting">Reconnecting</a>
+        <a href="?scenario=no-agent-selected">No selection</a>
+        <a href="?scenario=spawn-modal-open">Spawn modal</a>
+      </span>
     </div>"""
 
 

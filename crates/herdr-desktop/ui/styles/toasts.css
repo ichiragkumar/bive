@@ -1,0 +1,24 @@
+/* Toasts: top-right transient feedback. */
+#toasts-root {
+  position: fixed;
+  top: 54px;
+  right: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 100;
+}
+.toast {
+  background: var(--panel-2);
+  border: 1px solid var(--border-strong);
+  border-left: 3px solid var(--working);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 13px;
+  max-width: 320px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  transition: opacity 250ms;
+}
+.toast.err { border-left-color: var(--errored); }
+.toast.info { border-left-color: var(--text-muted); }
+.toast.out { opacity: 0; }

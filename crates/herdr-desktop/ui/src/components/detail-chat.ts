@@ -4,7 +4,7 @@
 // at the Terminal tab instead of an empty Chat.
 
 import type { AgentCard, ChatSegment, Store } from "../store.js";
-import { esc, req } from "./shared.js";
+import { esc, req, stripAnsi } from "./shared.js";
 
 const RAW_PROFILES = new Set(["bash", "generic"]);
 
@@ -15,7 +15,7 @@ export function mountDetailChat(store: Store): void {
 
   store.subscribe((s) => {
     const card = s.cards.find((c) => c.info.id === s.selectedId);
-    if (!card || store.tabFor(card.info.id, card.info.profile) !== "chat") return;
+    if (!card || store.tabFor(card.info.id, card.info.profile) !== "thread") return;
     renderChat(card, s.chat[card.info.id] || []);
   });
 
@@ -48,7 +48,7 @@ export function mountDetailChat(store: Store): void {
       const div = document.createElement("div");
       div.className = `turn ${t.kind.toLowerCase()}`;
       const who = t.kind === "Human" ? "you" : t.kind === "Tool" ? "tool" : "agent";
-      div.innerHTML = `<span class="who">${esc(who)}</span><pre>${esc(t.text)}</pre>`;
+      div.innerHTML = `<span class="who">${esc(who)}</span><pre>${esc(stripAnsi(t.text))}</pre>`;
       turnsEl.appendChild(div);
     }
     panel.scrollTop = panel.scrollHeight;

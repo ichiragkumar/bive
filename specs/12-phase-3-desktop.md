@@ -1,16 +1,16 @@
 # Phase 3 Spec — Desktop Client (Tauri 2)
 
-> Status: **Implemented, refinement pass landed** — three-pane frontend
-> (sidebar → agent list → detail Chat/Terminal/Info tabs), modular `ui/`
-> sources bundled with esbuild into `ui/dist/bundle.js`, Chat-turn
-> segmentation in the Rust core (`ui_state.rs`, golden-tested, shipped in
-> `snapshot`), profile picker + host-aware spawn, sidebar remote add/remove
-> (`remote_add_cmd`/`remote_list_cmd`/`remote_remove_cmd`, all thin over the
-> existing protocol). No `herdr-daemon`/`herdr-protocol` changes. Prior state:
-> protocol `AgentMedia` extension + daemon media pipeline (10 tests), TUI media
-> placeholders, Tauri-free desktop core (bridge/notify/tray/ui-state, 18 tests),
-> Tauri 2 shell + static UI behind `--features tauri`. Full `tauri dev`/bundle
-> run needs the Tauri CLI prerequisites on the build machine.
+> Status: **Implemented, V2 landed** — three-pane fleet dashboard (sidebar →
+> agent list → detail Thread/Terminal/Events/Media/Info), spawn modal with
+> presets + command preview, command palette (⌘K), search + attention-first
+> sort, kill confirmations, connection states (connected/reconnecting/
+> disconnected with supervisor-driven resubscribe + resync), tray priority
+> (offline > errored > blocked > working > idle > empty), preview scenarios
+> (empty/busy/blocked/errored/media/disconnected), keyboard shortcuts, empty
+> states, a11y labels + focus trap + visible focus. No `herdr-daemon`/
+> `herdr-protocol` changes. Prior: protocol `AgentMedia` extension + daemon
+> media pipeline (10 tests), TUI media placeholders, Tauri-free desktop core,
+> Tauri 2 shell + static UI behind `--features tauri`.
 
 ## Goal
 
@@ -67,10 +67,15 @@ now that Phase 4 has landed (this supersedes the old out-of-scope line).
    `remote_remove`; `spawn` takes an optional `host`).
 3. Media event pipeline (magic-line → structured event) in daemon + protocol.
 4. Tray + notification module with state dedup.
-5. Modular frontend (`ui/`: store + one module per surface, split styles),
-   esbuild bundle (`ui/dist/bundle.js`, committed, rebuilt with
-   `sh scripts/build_ui.sh`), Chat segmentation in the Rust core shipped via
-   `snapshot`, static preview generated from the real files.
+5. Modular frontend (`ui/`: strict TypeScript sources under `src/`, one module
+   per surface, split styles), esbuild bundle (`ui/dist/bundle.js`, committed,
+   rebuilt with `sh scripts/build_ui.sh` which runs `tsc --noEmit` first),
+   Chat segmentation in the Rust core shipped via `snapshot`, static preview
+   generated from the real files.
+6. Visual system: Void/Panel/Signal/Mist base with agent state colors as the
+   accent system, IBM Plex Mono (headlines/data) + IBM Plex Sans (body) from
+   committed local font files (offline-first; `font-src 'self'` in the CSP),
+   state glyphs (● ■ ◌ ✖ ·) as the visual language.
 
 ## Acceptance Criteria
 
@@ -103,3 +108,36 @@ PTY resize (needs a protocol addition), live host-status events (needs a
 protocol addition — sidebar uses one-shot `RemoteList`), raw keystroke
 passthrough in the Terminal tab, multi-select/bulk actions beyond global
 kill-all. (Remote hosts themselves are in scope since Phase 4 landed.)
+## Phase 3.5 implementation record (UX/journey revamp)
+
+Built against the Phase 3.5 prompt. No daemon/protocol changes; one thin Tauri
+wrapper added (`shutdown_cmd` over the existing `Shutdown` command — same class
+as the earlier `remote_*` wrappers).
+
+* **Found + fixed live:** the app never sent `ClientCommand::Events`, so the
+  real shell was snapshot-only. Added a supervisor thread (reconnect →
+  resubscribe → resync → `connected`; `reconnecting`/`disconnected` states),
+  cold-start-disconnected launch, and `Bridge::disconnected()`.
+* **Shell states (§3):** pill + strip + dimmed last-known fleet with stale
+  markers; guided empty/disconnected states; detail empty state hides
+  tabs/actions/composer (guard-tested).
+* **Journeys:** optimistic spawn rows reconciled + auto-selected on
+  `AgentSpawned` with toast; blocked→emphasized composer→send→flip; errored
+  bar (copy logs / new-like-this / kill); kill confirmations everywhere;
+  clear-exited (view-hide until daemon auto-prune); shutdown with strong
+  confirm; palette (spawn presets, jump, hosts, follow, tabs, reconnect,
+  shutdown, diagnostics).
+* **Fleet:** search + 4 sorts (attention default) + 200-row cap + sparklines +
+  relative-time tick (30 s view clock, no daemon traffic) + hover copy/kill.
+* **Detail:** Thread/Terminal (follow+pause pill, full-buffer load, copy,
+  byte count)/Events timeline/Media gallery/Info; per-agent tab memory.
+* **Feedback:** toasts on async actions, copy morphs, inline spawn/modal
+  errors, retry + copy-diagnostics in the strip.
+* **Preview:** 10 scenarios via `?scenario=` + banner links, from the real UI.
+* **Known limitations (documented deviations):** no label field (no protocol
+  slot); no respawn-with-identical-args ("new like this" prefills
+  profile/host/cwd/command); notification click-through unsupported by
+  tauri-plugin-notification v2 (no click callback); tray menu actions can't
+  confirm (noted); row "reconnecting" markers need host-level events (no
+  protocol support); `~`/relative cwd passed through unchecked (webview has
+  no fs access); list capped at 200 rows instead of virtualized.

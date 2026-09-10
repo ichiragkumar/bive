@@ -10,20 +10,31 @@
     <link rel="stylesheet" href="styles/agent-list.css" />
     <link rel="stylesheet" href="styles/detail.css" />
     <link rel="stylesheet" href="styles/composer.css" />
+    <link rel="stylesheet" href="styles/toasts.css" />
+    <link rel="stylesheet" href="styles/modal.css" />
+    <link rel="stylesheet" href="styles/palette.css" />
   </head>
   <body>
     <header id="topbar">
-      <button id="btn-side" title="toggle sidebar">☰</button>
-      <span id="conn-dot" class="dot gray" title="daemon connection"></span>
+      <button id="btn-side" title="toggle sidebar" aria-label="toggle sidebar">☰</button>
+      <span id="conn-pill" class="pill down"><span id="conn-dot" class="dot gray" title="daemon connection"></span><span id="conn-label">Disconnected</span></span>
       <h1>herdr</h1>
       <span id="fleet-dot" class="dot gray"></span>
-      <span id="fleet-summary" class="muted">no agents</span>
+      <span id="fleet-summary" class="muted"></span>
       <span class="spacer"></span>
-      <button id="btn-kill-all" class="danger">kill all</button>
+      <button id="btn-new-agent" class="primary">+ New agent</button>
+      <button id="btn-palette" title="command palette (⌘K)" aria-label="command palette">⌘K</button>
+      <button id="btn-menu" title="more actions" aria-label="more actions">⋯</button>
     </header>
+
+    <div id="conn-banner" class="banner" hidden></div>
 
     <div id="layout">
       <aside id="sidebar">
+        <section>
+          <h2>Fleet</h2>
+          <ul id="fleet-filters"></ul>
+        </section>
         <section>
           <h2>Hosts</h2>
           <ul id="host-list"></ul>
@@ -31,29 +42,21 @@
         </section>
         <section>
           <h2>Spawn</h2>
-          <label for="profile-picker">profile:</label>
-          <select id="profile-picker">
-            <option value="generic">generic</option>
-            <option value="claude-code">claude-code</option>
-            <option value="codex">codex</option>
-            <option value="bash">bash</option>
-          </select>
-          <button id="btn-spawn">+ spawn</button>
-        </section>
-        <section>
-          <h2>Filter</h2>
-          <label for="filter">state:</label>
-          <select id="filter">
-            <option value="all">all</option>
-            <option value="Working">working</option>
-            <option value="Blocked">blocked</option>
-            <option value="Idle">idle</option>
-            <option value="Errored">errored</option>
-          </select>
+          <div id="profile-chips"></div>
+          <button id="btn-spawn">+ spawn…</button>
         </section>
       </aside>
 
       <section id="agent-list-pane">
+        <div id="fleet-tools">
+          <input id="fleet-search" placeholder="search agents…  ( / )" aria-label="search agents" />
+          <select id="fleet-sort" aria-label="sort agents">
+            <option value="attention">attention first</option>
+            <option value="newest">newest</option>
+            <option value="activity">last activity</option>
+            <option value="state">state</option>
+          </select>
+        </div>
         <ul id="agent-list"></ul>
       </section>
 
@@ -61,8 +64,10 @@
         <header id="detail-header">
           <h2 id="detail-title">no agent selected</h2>
           <div class="tabs" role="tablist">
-            <button class="tab" data-tab="chat" role="tab">Chat</button>
+            <button class="tab" data-tab="thread" role="tab">Thread</button>
             <button class="tab" data-tab="terminal" role="tab">Terminal</button>
+            <button class="tab" data-tab="events" role="tab">Events</button>
+            <button class="tab" data-tab="media" role="tab" id="tabbtn-media" hidden>Media</button>
             <button class="tab" data-tab="info" role="tab">Info</button>
           </div>
           <button id="detail-copy">copy id</button>
@@ -73,19 +78,52 @@
           <div id="chat-turns"></div>
         </div>
         <div id="tab-terminal" class="tab-panel">
+          <div id="terminal-toolbar">
+            <button id="btn-follow" title="follow tail (f)">follow: on</button>
+            <button id="paused-pill" hidden></button>
+            <button id="btn-load-full" title="load full 256 KB ring buffer">load full buffer</button>
+            <button id="btn-copy-logs" title="copy visible log">copy logs</button>
+            <span id="terminal-meta" class="muted"></span>
+          </div>
           <pre id="detail-log" class="log"></pre>
+        </div>
+        <div id="tab-events" class="tab-panel">
+          <ul id="events-timeline"></ul>
+        </div>
+        <div id="tab-media" class="tab-panel">
+          <div id="media-gallery"></div>
         </div>
         <div id="tab-info" class="tab-panel">
           <dl id="detail-info-list"></dl>
         </div>
+        <div id="exited-bar" class="warn-bar" hidden>
+          <span id="exited-text"></span>
+          <button id="btn-copy-exit-logs" class="ghost">copy logs</button>
+          <button id="btn-respawn-like" class="ghost">new like this</button>
+          <button id="btn-kill-exited" class="ghost danger">kill</button>
+        </div>
+        <div id="detail-empty" class="tab-panel" hidden>
+          <h3>No agent selected</h3>
+          <p>Pick an agent from the fleet list — or spawn one:</p>
+          <p>
+            <button id="btn-empty-spawn">spawn agent</button>
+          </p>
+          <pre class="terminal">herdr spawn --profile bash --cwd /tmp -- bash --norc -i</pre>
+        </div>
         <footer id="composer-bar">
-          <input id="composer" placeholder="send input to agent…" />
-          <button id="composer-send">send</button>
+          <div id="composer-main">
+            <textarea id="composer" rows="2" placeholder="send input to agent…  (Enter to send · ⇧Enter newline)"></textarea>
+            <label class="raw-toggle"><input type="checkbox" id="composer-raw" /> raw</label>
+            <button id="composer-send">send</button>
+          </div>
+          <div id="composer-warn" class="warn" hidden></div>
         </footer>
       </section>
     </div>
 
     <div id="fatal" class="fatal" hidden></div>
+    <div id="modal-root" hidden></div>
+    <div id="palette-root" hidden></div>
 
     <script type="module" src="dist/bundle.js"></script>
   </body>

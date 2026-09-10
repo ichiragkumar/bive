@@ -17,35 +17,66 @@ use std::path::PathBuf;
 const REQUIRED_IDS: &[&str] = &[
     "topbar",
     "btn-side",
+    "conn-pill",
     "conn-dot",
+    "conn-label",
     "fleet-dot",
     "fleet-summary",
-    "btn-kill-all",
+    "btn-new-agent",
+    "btn-menu",
+    "conn-banner",
+    "btn-palette",
+    "conn-banner",
     "layout",
     "sidebar",
+    "fleet-filters",
     "host-list",
     "btn-add-remote",
-    "profile-picker",
+    "profile-chips",
     "btn-spawn",
-    "filter",
     "agent-list-pane",
+    "fleet-search",
+    "fleet-sort",
     "agent-list",
     "detail-pane",
     "detail-header",
     "detail-title",
     "tab-chat",
     "tab-terminal",
+    "tab-events",
+    "tab-media",
+    "tabbtn-media",
     "tab-info",
     "chat-media",
     "chat-turns",
     "detail-log",
+    "terminal-toolbar",
+    "btn-follow",
+    "paused-pill",
+    "btn-load-full",
+    "btn-copy-logs",
+    "terminal-meta",
+    "events-timeline",
+    "media-gallery",
     "detail-info-list",
+    "detail-empty",
+    "btn-empty-spawn",
+    "exited-bar",
+    "exited-text",
+    "btn-copy-exit-logs",
+    "btn-respawn-like",
+    "btn-kill-exited",
     "composer-bar",
+    "composer-main",
     "composer",
+    "composer-raw",
     "composer-send",
+    "composer-warn",
     "detail-copy",
     "detail-kill",
     "fatal",
+    "modal-root",
+    "palette-root",
 ];
 
 /// Void elements never need a closing tag.
@@ -164,6 +195,47 @@ fn check_mount_points(html: &str, what: &str) {
 }
 
 #[test]
+fn dashboard_sources_are_typescript() {
+    // No vanilla JS: ui/ sources are strict TypeScript, bundled by esbuild.
+    let root = workspace_root();
+    let ui = root.join("crates/herdr-desktop/ui");
+    let mut stray = Vec::new();
+    let mut stack = vec![ui.clone()];
+    while let Some(dir) = stack.pop() {
+        for entry in
+            std::fs::read_dir(&dir).unwrap_or_else(|e| panic!("reading {}: {e}", dir.display()))
+        {
+            let path = entry.expect("dir entry").path();
+            if path.is_dir() {
+                if path.file_name().and_then(|n| n.to_str()) != Some("dist") {
+                    stack.push(path);
+                }
+                continue;
+            }
+            if path.extension().and_then(|e| e.to_str()) == Some("js") {
+                stray.push(path);
+            }
+        }
+    }
+    assert!(
+        stray.is_empty(),
+        "vanilla JS sources outside dist/: {stray:?}"
+    );
+    for src in [
+        "crates/herdr-desktop/ui/src/main.ts",
+        "crates/herdr-desktop/ui/src/store.ts",
+        "crates/herdr-desktop/ui/tsconfig.json",
+    ] {
+        assert!(root.join(src).exists(), "missing TypeScript source: {src}");
+    }
+    let tsconfig = read("crates/herdr-desktop/ui/tsconfig.json");
+    assert_contains(&tsconfig, "\"strict\": true", "tsconfig.json");
+    let build = read("scripts/build_ui.sh");
+    assert_contains(&build, "tsc --noEmit", "build_ui.sh typecheck");
+    assert_contains(&build, "src/main.ts", "build_ui.sh entry");
+}
+
+#[test]
 fn tag_balance_checker_rejects_broken_markup() {
     // The validator itself must not be vacuous: well-formed markup passes,
     // each broken shape panics.
@@ -192,38 +264,51 @@ fn dashboard_skeleton_has_all_mount_points() {
 
     // Wiring: modular stylesheets + the esbuild bundle entry.
     assert_contains(&html, "styles/tokens.css", "ui/index.html");
+    assert_contains(&html, "styles/modal.css", "ui/index.html");
     assert_contains(
         &html,
         "<script type=\"module\" src=\"dist/bundle.js\">",
         "ui/index.html",
     );
 
-    // Spawn profile picker must offer every daemon profile.
-    for opt in [
-        "value=\"generic\"",
-        "value=\"claude-code\"",
-        "value=\"codex\"",
-        "value=\"bash\"",
+    // Spawn modal entry + command palette + overlays live in the shell.
+    for id in [
+        "btn-spawn",
+        "btn-palette",
+        "modal-root",
+        "palette-root",
+        "conn-banner",
     ] {
-        assert_contains(&html, opt, "ui/index.html profile picker");
+        assert_contains(&html, &format!("id=\"{id}\""), "ui/index.html shell");
     }
-    // State filter options the list compares against.
+    // State filter options the fleet tools compare against.
     for opt in [
-        "value=\"all\"",
-        "value=\"Working\"",
-        "value=\"Blocked\"",
-        "value=\"Idle\"",
-        "value=\"Errored\"",
+        "value=\"attention\"",
+        "value=\"newest\"",
+        "value=\"activity\"",
+        "value=\"state\"",
     ] {
-        assert_contains(&html, opt, "ui/index.html filter");
+        assert_contains(&html, opt, "ui/index.html sort");
     }
     // Detail tabs.
     for tab in [
-        "data-tab=\"chat\"",
+        "data-tab=\"thread\"",
         "data-tab=\"terminal\"",
+        "data-tab=\"events\"",
+        "data-tab=\"media\"",
         "data-tab=\"info\"",
     ] {
         assert_contains(&html, tab, "ui/index.html tabs");
+    }
+    // Fleet tools + composer controls.
+    for id in [
+        "fleet-search",
+        "fleet-sort",
+        "composer",
+        "composer-raw",
+        "composer-warn",
+    ] {
+        assert_contains(&html, &format!("id=\"{id}\""), "ui/index.html controls");
     }
 
     // Only external references here, so balance the whole document directly.
@@ -261,10 +346,28 @@ fn dashboard_bundle_matches_tauri_surface() {
         "__HERDR_APP__",
         "agent-list",
         "host-list",
-        "profile-picker",
-        "chat-turns",
-        "detail-info-list",
+        "fleet-search",
+        "fleet-filters",
+        "profile-chips",
+        "events-timeline",
+        "media-gallery",
         "noteSentLocal",
+        "modal-overlay",
+        "command palette",
+        "Spawn agent",
+        "spawn_agent_cmd",
+        "shutdown_cmd",
+        "herdr://open-spawn",
+        "conn-banner",
+        "claude-code",
+        "Bash shell",
+        "Kill all agents",
+        "Kill agent",
+        "Shutdown daemon",
+        "Forget host",
+        "No agents running",
+        "Daemon unavailable",
+        "Reconnecting to daemon",
     ] {
         assert_contains(&js, symbol, "bundle.js");
     }
@@ -380,6 +483,49 @@ fn dashboard_fonts_are_bundled_locally() {
 }
 
 #[test]
+fn inert_controls_guarded_without_selection() {
+    // §3.5 §5.4: with no agent selected, detail tabs/actions/composer must
+    // not be enabled-looking and inert. These structural guards pin the
+    // showEmpty + disabled-with-reason logic in the sources.
+    let detail = read("crates/herdr-desktop/ui/src/components/detail.ts");
+    for symbol in [
+        "showEmpty()",
+        "b.hidden = true", // header actions hidden, not merely idle
+        "exitedBar.hidden = true",
+        "tabsRow.hidden = true",
+    ] {
+        assert_contains(&detail, symbol, "detail.ts empty guard");
+    }
+    let composer = read("crates/herdr-desktop/ui/src/components/composer.ts");
+    for symbol in [
+        "sendBtn.disabled = dead",
+        "input.disabled = dead",
+        "Select an agent to send input.",
+        "sending is disabled",
+    ] {
+        assert_contains(&composer, symbol, "composer.ts disabled guard");
+    }
+}
+
+#[test]
+fn destructive_actions_require_confirmation() {
+    // §3.5 §7: kill / kill-all / shutdown / host-remove always confirm with
+    // what + irreversibility. Pins the confirmModal call sites + copy.
+    let js = read("crates/herdr-desktop/ui/dist/bundle.js");
+    for symbol in [
+        "confirmModal",
+        "Kill agent",
+        "Kill all agents",
+        "This cannot be undone",
+        "Shutdown daemon",
+        "Forget host",
+        "will be disconnected",
+    ] {
+        assert_contains(&js, symbol, "bundle.js confirmations");
+    }
+}
+
+#[test]
 fn preview_harness_matches_dashboard_contract() {
     let harness = read("scripts/preview_harness.js");
 
@@ -402,6 +548,22 @@ fn preview_harness_matches_dashboard_contract() {
     }
     // …serve snapshot chat turns and remote hosts…
     for symbol in ["snapChat", "registryHosts", "chat"] {
+        assert_contains(&harness, symbol, "preview_harness.js");
+    }
+    // …and seed every preview scenario (empty/busy/blocked/errored/media/
+    // remote/disconnected/reconnecting/no-agent-selected/spawn-modal-open).
+    for symbol in [
+        "currentScenario",
+        "seedBusy",
+        "seedBlocked",
+        "seedErrored",
+        "seedMedia",
+        "seedRemote",
+        "simError",
+        "no-agent-selected",
+        "spawn-modal-open",
+        "reconnecting",
+    ] {
         assert_contains(&harness, symbol, "preview_harness.js");
     }
     // …and emit the same channels/events the Rust shell forwards.
@@ -433,6 +595,12 @@ fn preview_harness_matches_dashboard_contract() {
         "preview-banner",
         "stylesheet",
         "fonts",
+        "?scenario=empty",
+        "?scenario=remote",
+        "?scenario=disconnected",
+        "?scenario=reconnecting",
+        "?scenario=no-agent-selected",
+        "?scenario=spawn-modal-open",
     ] {
         assert_contains(&gen, symbol, "make_preview.py");
     }

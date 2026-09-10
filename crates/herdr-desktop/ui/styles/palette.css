@@ -1,0 +1,32 @@
+/* Command palette overlay. */
+#palette-root[hidden] { display: none; }
+#palette-root {
+  position: fixed;
+  inset: 0;
+  background: rgba(4, 6, 8, 0.6);
+  display: flex;
+  justify-content: center;
+  padding-top: 14vh;
+  z-index: 60;
+}
+.palette {
+  background: var(--panel);
+  border: 1px solid var(--border-strong);
+  border-radius: 12px;
+  width: min(560px, 92vw);
+  max-height: 60vh;
+  display: flex;
+  flex-direction: column;
+  padding: 10px;
+}
+.palette input { margin-bottom: 8px; }
+.palette ul { list-style: none; margin: 0; padding: 0; overflow-y: auto; }
+.palette li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.palette li.active, .palette li:hover { background: var(--panel-3); }
