@@ -18,6 +18,7 @@ use herdr_protocol::{
 };
 
 mod replay;
+mod service;
 
 #[derive(Parser)]
 #[command(
@@ -71,6 +72,25 @@ enum Cmd {
     Events,
     /// Stop the daemon and kill all agents.
     Shutdown,
+    /// Register the daemon as a per-user service (launchd on macOS, systemd on Linux):
+    /// starts on login, restarts on crash.
+    InstallService {
+        /// Force a backend instead of auto-detecting (launchd, systemd).
+        #[arg(long)]
+        backend: Option<String>,
+        /// Print what would be written and run, without changing anything.
+        #[arg(long)]
+        dry_run: bool,
+    },
+    /// Remove the per-user service registration and stop the service daemon.
+    UninstallService {
+        /// Force a backend instead of auto-detecting (launchd, systemd).
+        #[arg(long)]
+        backend: Option<String>,
+        /// Print what would be removed and run, without changing anything.
+        #[arg(long)]
+        dry_run: bool,
+    },
     /// Offline state-timeline inference over a captured PTY stream (no daemon).
     Replay {
         /// Profile whose regexes/timings drive inference (generic, claude-code, codex, bash).
@@ -378,7 +398,128 @@ fn run(cmd: Cmd) -> Result<(), HerdrError> {
             explain,
         })
         .map_err(other_err),
+        Cmd::InstallService { backend, dry_run } => {
+            service_cmd(service::ServiceAction::Install, backend, dry_run)
+        }
+        Cmd::UninstallService { backend, dry_run } => {
+            service_cmd(service::ServiceAction::Uninstall, backend, dry_run)
+        }
     }
+}
+
+/// Shared body of install/uninstall-service: plan, write, activate/deactivate.
+fn service_cmd(
+    action: service::ServiceAction,
+    backend: Option<String>,
+    dry_run: bool,
+) -> Result<(), HerdrError> {
+    let kind = match backend.as_deref() {
+        None => service::ServiceKind::detect(),
+        Some("launchd") => service::ServiceKind::Launchd,
+        Some("systemd") => service::ServiceKind::Systemd,
+        Some(other) => {
+            return Err(HerdrError::Other(anyhow!(
+                "unknown backend {other:?} — supported: launchd, systemd"
+            )))
+        }
+    };
+    let spec =
+        service::ServiceSpec::for_current_process().map_err(|e| HerdrError::Other(anyhow!(e)))?;
+    let home = dirs_home()?;
+    let plan =
+        service::plan_install(kind, &spec, &home).map_err(|e| HerdrError::Other(anyhow!(e)))?;
+
+    match action {
+        service::ServiceAction::Install => {
+            println!("backend:  {}", backend_name(kind));
+            println!("binary:   {}", spec.binary.display());
+            println!("socket:   {}", spec.socket.display());
+            if dry_run {
+                println!("would write {}:", plan.display_path);
+                println!("{}", plan.content);
+                for c in &plan.activate {
+                    println!("would run: {c}");
+                }
+                return Ok(());
+            }
+            if let Some(parent) = plan.path.parent() {
+                std::fs::create_dir_all(parent).map_err(other_err)?;
+            }
+            std::fs::write(&plan.path, &plan.content).map_err(other_err)?;
+            println!("wrote     {}", plan.display_path);
+            for c in &plan.activate {
+                run_service_command(c)?;
+            }
+            println!("herdr daemon will start on login and restart on crash.");
+            println!("logs: {}/herdr-daemon.log", std::env::temp_dir().display());
+            Ok(())
+        }
+        service::ServiceAction::Uninstall => {
+            println!("backend:  {}", backend_name(kind));
+            if dry_run {
+                for c in &plan.deactivate {
+                    println!("would run: {c}");
+                }
+                println!("would remove: {}", plan.display_path);
+                return Ok(());
+            }
+            for c in &plan.deactivate {
+                run_service_command(c)?;
+            }
+            match std::fs::remove_file(&plan.path) {
+                Ok(()) => println!("removed   {}", plan.display_path),
+                Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
+                    println!("nothing to remove ({} absent)", plan.display_path)
+                }
+                Err(e) => return Err(other_err(e)),
+            }
+            println!("service uninstalled; start the daemon manually with `herdr daemon`.");
+            Ok(())
+        }
+    }
+}
+
+fn backend_name(kind: service::ServiceKind) -> &'static str {
+    match kind {
+        service::ServiceKind::Launchd => "launchd (macOS user agent)",
+        service::ServiceKind::Systemd => "systemd (Linux user unit)",
+        service::ServiceKind::Unsupported => "unsupported",
+    }
+}
+
+/// Run one activation/deactivation command, tolerating "already stopped/unloaded"
+/// states but failing on anything else.
+fn run_service_command(cmd: &str) -> Result<(), HerdrError> {
+    use std::process::Command;
+    // Commands embed `$(id -u)` — run through sh.
+    let status = Command::new("sh")
+        .arg("-c")
+        .arg(cmd)
+        .status()
+        .map_err(other_err)?;
+    if status.success() {
+        return Ok(());
+    }
+    // launchctl bootout fails when the agent isn't loaded; same for disable on an
+    // inactive unit. Uninstall must not demand a live service.
+    if cmd.starts_with("launchctl bootout") || cmd.contains("disable --now") {
+        eprintln!("note: `{cmd}` reported {status} (already stopped/unloaded?) — continuing");
+        return Ok(());
+    }
+    Err(HerdrError::Other(anyhow!(
+        "command failed ({status}): {cmd}"
+    )))
+}
+
+fn dirs_home() -> Result<std::path::PathBuf, HerdrError> {
+    std::env::var_os("HOME")
+        .map(std::path::PathBuf::from)
+        .filter(|p| p.is_absolute())
+        .ok_or_else(|| {
+            HerdrError::Other(anyhow!(
+                "HOME is not set — cannot locate the user service directory"
+            ))
+        })
 }
 
 fn daemon() -> Result<(), HerdrError> {
@@ -389,11 +530,14 @@ fn daemon() -> Result<(), HerdrError> {
     let socket = socket_path();
     rt.block_on(async move {
         // Single-instance guard: if the socket answers a Ping, a daemon is alive.
+        // Exit 0 (not an error) so a launchd KeepAlive job stays down after
+        // `herdr shutdown` instead of being respawned forever.
         if socket.exists() && daemon_is_live(&socket) {
-            return Err(HerdrError::Other(anyhow!(
-                "daemon already running on {}",
+            println!(
+                "daemon already running on {} — nothing to do",
                 socket.display()
-            )));
+            );
+            return Ok(());
         }
         herdr_daemon::ipc::prepare_socket_path(&socket)
             .map_err(|e| HerdrError::Other(anyhow!("{e:#}")))?;

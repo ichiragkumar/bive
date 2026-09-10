@@ -1,9 +1,10 @@
-/Users/apple/Projects/bive/target/debug/deps/herdr-89046533a82b9190.d: crates/herdr-cli/src/main.rs crates/herdr-cli/src/replay.rs Cargo.toml
+/Users/apple/Projects/bive/target/debug/deps/herdr-89046533a82b9190.d: crates/herdr-cli/src/main.rs crates/herdr-cli/src/replay.rs crates/herdr-cli/src/service.rs Cargo.toml
 
-/Users/apple/Projects/bive/target/debug/deps/libherdr-89046533a82b9190.rmeta: crates/herdr-cli/src/main.rs crates/herdr-cli/src/replay.rs Cargo.toml
+/Users/apple/Projects/bive/target/debug/deps/libherdr-89046533a82b9190.rmeta: crates/herdr-cli/src/main.rs crates/herdr-cli/src/replay.rs crates/herdr-cli/src/service.rs Cargo.toml
 
 crates/herdr-cli/src/main.rs:
 crates/herdr-cli/src/replay.rs:
+crates/herdr-cli/src/service.rs:
 Cargo.toml:
 
 # env-dep:CARGO_PKG_VERSION=0.1.0

@@ -1,70 +1,42 @@
-   0.085398667s  INFO prepare_target{force=false package_id=herdr-cli v0.1.0 (/Users/apple/Projects/bive/crates/herdr-cli) target="herdr"}: cargo::core::compiler::fingerprint: stale: changed "/Users/apple/Projects/bive/crates/herdr-daemon/src/state.rs"
-   0.085415667s  INFO prepare_target{force=false package_id=herdr-cli v0.1.0 (/Users/apple/Projects/bive/crates/herdr-cli) target="herdr"}: cargo::core::compiler::fingerprint:           (vs) "/Users/apple/Projects/bive/target/debug/.fingerprint/herdr-daemon-c70c9b303ce844d7/dep-lib-herdr_daemon"
-   0.085418375s  INFO prepare_target{force=false package_id=herdr-cli v0.1.0 (/Users/apple/Projects/bive/crates/herdr-cli) target="herdr"}: cargo::core::compiler::fingerprint:                FileTime { seconds: 1789012396, nanos: 191457687 } < FileTime { seconds: 1789017851, nanos: 224273606 }
-   0.087901792s  INFO prepare_target{force=false package_id=herdr-cli v0.1.0 (/Users/apple/Projects/bive/crates/herdr-cli) target="herdr"}: cargo::core::compiler::fingerprint: fingerprint dirty for herdr-cli v0.1.0 (/Users/apple/Projects/bive/crates/herdr-cli)/Check { test: false }/TargetInner { name: "herdr", doc: true, ..: with_path("/Users/apple/Projects/bive/crates/herdr-cli/src/main.rs", Edition2021) }
-   0.088212084s  INFO prepare_target{force=false package_id=herdr-cli v0.1.0 (/Users/apple/Projects/bive/crates/herdr-cli) target="herdr"}: cargo::core::compiler::fingerprint:     dirty: FsStatusOutdated(StaleDepFingerprint { name: "herdr_daemon" })
-   0.094147459s  INFO prepare_target{force=false package_id=herdr-daemon v0.1.0 (/Users/apple/Projects/bive/crates/herdr-daemon) target="herdr_daemon"}: cargo::core::compiler::fingerprint: fingerprint dirty for herdr-daemon v0.1.0 (/Users/apple/Projects/bive/crates/herdr-daemon)/Check { test: false }/TargetInner { name_inferred: true, ..: lib_target("herdr_daemon", ["lib"], "/Users/apple/Projects/bive/crates/herdr-daemon/src/lib.rs", Edition2021) }
-   0.094726334s  INFO prepare_target{force=false package_id=herdr-daemon v0.1.0 (/Users/apple/Projects/bive/crates/herdr-daemon) target="herdr_daemon"}: cargo::core::compiler::fingerprint:     dirty: FsStatusOutdated(StaleItem(ChangedFile { reference: "/Users/apple/Projects/bive/target/debug/.fingerprint/herdr-daemon-c70c9b303ce844d7/dep-lib-herdr_daemon", reference_mtime: FileTime { seconds: 1789012396, nanos: 191457687 }, stale: "/Users/apple/Projects/bive/crates/herdr-daemon/src/state.rs", stale_mtime: FileTime { seconds: 1789017851, nanos: 224273606 } }))
-   0.106265167s  INFO prepare_target{force=false package_id=herdr-cli v0.1.0 (/Users/apple/Projects/bive/crates/herdr-cli) target="herdr"}: cargo::core::compiler::fingerprint: fingerprint dirty for herdr-cli v0.1.0 (/Users/apple/Projects/bive/crates/herdr-cli)/Check { test: true }/TargetInner { name: "herdr", doc: true, ..: with_path("/Users/apple/Projects/bive/crates/herdr-cli/src/main.rs", Edition2021) }
-   0.106271375s  INFO prepare_target{force=false package_id=herdr-cli v0.1.0 (/Users/apple/Projects/bive/crates/herdr-cli) target="herdr"}: cargo::core::compiler::fingerprint:     dirty: FsStatusOutdated(StaleDepFingerprint { name: "herdr_daemon" })
-   0.108263375s  INFO prepare_target{force=false package_id=herdr-daemon v0.1.0 (/Users/apple/Projects/bive/crates/herdr-daemon) target="herdr_daemon"}: cargo::core::compiler::fingerprint: stale: changed "/Users/apple/Projects/bive/crates/herdr-daemon/src/ipc.rs"
-   0.108265500s  INFO prepare_target{force=false package_id=herdr-daemon v0.1.0 (/Users/apple/Projects/bive/crates/herdr-daemon) target="herdr_daemon"}: cargo::core::compiler::fingerprint:           (vs) "/Users/apple/Projects/bive/target/debug/.fingerprint/herdr-daemon-3dd962efd6827656/dep-test-lib-herdr_daemon"
-   0.108267042s  INFO prepare_target{force=false package_id=herdr-daemon v0.1.0 (/Users/apple/Projects/bive/crates/herdr-daemon) target="herdr_daemon"}: cargo::core::compiler::fingerprint:                FileTime { seconds: 1789012396, nanos: 232212615 } < FileTime { seconds: 1789014411, nanos: 947836619 }
-   0.108370625s  INFO prepare_target{force=false package_id=herdr-daemon v0.1.0 (/Users/apple/Projects/bive/crates/herdr-daemon) target="herdr_daemon"}: cargo::core::compiler::fingerprint: fingerprint dirty for herdr-daemon v0.1.0 (/Users/apple/Projects/bive/crates/herdr-daemon)/Check { test: true }/TargetInner { name_inferred: true, ..: lib_target("herdr_daemon", ["lib"], "/Users/apple/Projects/bive/crates/herdr-daemon/src/lib.rs", Edition2021) }
-   0.108375042s  INFO prepare_target{force=false package_id=herdr-daemon v0.1.0 (/Users/apple/Projects/bive/crates/herdr-daemon) target="herdr_daemon"}: cargo::core::compiler::fingerprint:     dirty: FsStatusOutdated(StaleItem(ChangedFile { reference: "/Users/apple/Projects/bive/target/debug/.fingerprint/herdr-daemon-3dd962efd6827656/dep-test-lib-herdr_daemon", reference_mtime: FileTime { seconds: 1789012396, nanos: 232212615 }, stale: "/Users/apple/Projects/bive/crates/herdr-daemon/src/ipc.rs", stale_mtime: FileTime { seconds: 1789014411, nanos: 947836619 } }))
-   0.118491625s  INFO prepare_target{force=false package_id=herdr-tui v0.1.0 (/Users/apple/Projects/bive/crates/herdr-tui) target="herdr-tui"}: cargo::core::compiler::fingerprint: fingerprint error for herdr-tui v0.1.0 (/Users/apple/Projects/bive/crates/herdr-tui)/Check { test: false }/TargetInner { name: "herdr-tui", doc: true, ..: with_path("/Users/apple/Projects/bive/crates/herdr-tui/src/main.rs", Edition2021) }
-   0.118495667s  INFO prepare_target{force=false package_id=herdr-tui v0.1.0 (/Users/apple/Projects/bive/crates/herdr-tui) target="herdr-tui"}: cargo::core::compiler::fingerprint:     err: failed to read `/Users/apple/Projects/bive/target/debug/.fingerprint/herdr-tui-b0cd19a8b28f5157/bin-herdr-tui`
-
-Caused by:
-    No such file or directory (os error 2)
-
-Stack backtrace:
-   0: std::backtrace::Backtrace::create
-   1: std::backtrace::Backtrace::capture
-   2: cargo_util::paths::read_bytes
-   3: cargo_util::paths::read
-   4: cargo::core::compiler::fingerprint::_compare_old_fingerprint
-   5: cargo::core::compiler::fingerprint::prepare_target
-   6: cargo::core::compiler::compile
-   7: <cargo::core::compiler::build_runner::BuildRunner>::compile
-   8: cargo::ops::cargo_compile::compile_ws
-   9: cargo::ops::cargo_compile::compile_with_exec
-  10: cargo::ops::cargo_compile::compile
-  11: cargo::commands::check::exec
-  12: <cargo::cli::Exec>::exec
-  13: cargo::main
-  14: std::sys::backtrace::__rust_begin_short_backtrace::<fn(), ()>
-  15: std::rt::lang_start::<()>::{closure#0}
-  16: std::rt::lang_start_internal
-  17: _main
-   0.147469792s  INFO prepare_target{force=false package_id=herdr-tui v0.1.0 (/Users/apple/Projects/bive/crates/herdr-tui) target="herdr-tui"}: cargo::core::compiler::fingerprint: fingerprint error for herdr-tui v0.1.0 (/Users/apple/Projects/bive/crates/herdr-tui)/Check { test: true }/TargetInner { name: "herdr-tui", doc: true, ..: with_path("/Users/apple/Projects/bive/crates/herdr-tui/src/main.rs", Edition2021) }
-   0.147478084s  INFO prepare_target{force=false package_id=herdr-tui v0.1.0 (/Users/apple/Projects/bive/crates/herdr-tui) target="herdr-tui"}: cargo::core::compiler::fingerprint:     err: failed to read `/Users/apple/Projects/bive/target/debug/.fingerprint/herdr-tui-0891e2a581099d4c/test-bin-herdr-tui`
-
-Caused by:
-    No such file or directory (os error 2)
-
-Stack backtrace:
-   0: std::backtrace::Backtrace::create
-   1: std::backtrace::Backtrace::capture
-   2: cargo_util::paths::read_bytes
-   3: cargo_util::paths::read
-   4: cargo::core::compiler::fingerprint::_compare_old_fingerprint
-   5: cargo::core::compiler::fingerprint::prepare_target
-   6: cargo::core::compiler::compile
-   7: <cargo::core::compiler::build_runner::BuildRunner>::compile
-   8: cargo::ops::cargo_compile::compile_ws
-   9: cargo::ops::cargo_compile::compile_with_exec
-  10: cargo::ops::cargo_compile::compile
-  11: cargo::commands::check::exec
-  12: <cargo::cli::Exec>::exec
-  13: cargo::main
-  14: std::sys::backtrace::__rust_begin_short_backtrace::<fn(), ()>
-  15: std::rt::lang_start::<()>::{closure#0}
-  16: std::rt::lang_start_internal
-  17: _main
+   0.079540500s  INFO prepare_target{force=false package_id=herdr-cli v0.1.0 (/Users/apple/Projects/bive/crates/herdr-cli) target="herdr"}: cargo::core::compiler::fingerprint: stale: changed "/Users/apple/Projects/bive/crates/herdr-protocol/src/profile.rs"
+   0.079552625s  INFO prepare_target{force=false package_id=herdr-cli v0.1.0 (/Users/apple/Projects/bive/crates/herdr-cli) target="herdr"}: cargo::core::compiler::fingerprint:           (vs) "/Users/apple/Projects/bive/target/debug/.fingerprint/herdr-protocol-6cd1db05b1238ecd/dep-lib-herdr_protocol"
+   0.079555250s  INFO prepare_target{force=false package_id=herdr-cli v0.1.0 (/Users/apple/Projects/bive/crates/herdr-cli) target="herdr"}: cargo::core::compiler::fingerprint:                FileTime { seconds: 1789012395, nanos: 957420192 } < FileTime { seconds: 1789019482, nanos: 480837282 }
+   0.090646000s  INFO prepare_target{force=false package_id=herdr-cli v0.1.0 (/Users/apple/Projects/bive/crates/herdr-cli) target="herdr"}: cargo::core::compiler::fingerprint: fingerprint dirty for herdr-cli v0.1.0 (/Users/apple/Projects/bive/crates/herdr-cli)/Check { test: false }/TargetInner { name: "herdr", doc: true, ..: with_path("/Users/apple/Projects/bive/crates/herdr-cli/src/main.rs", Edition2021) }
+   0.090744500s  INFO prepare_target{force=false package_id=herdr-cli v0.1.0 (/Users/apple/Projects/bive/crates/herdr-cli) target="herdr"}: cargo::core::compiler::fingerprint:     dirty: FsStatusOutdated(StaleDepFingerprint { name: "herdr_protocol" })
+   0.096658375s  INFO prepare_target{force=false package_id=herdr-daemon v0.1.0 (/Users/apple/Projects/bive/crates/herdr-daemon) target="herdr_daemon"}: cargo::core::compiler::fingerprint: fingerprint dirty for herdr-daemon v0.1.0 (/Users/apple/Projects/bive/crates/herdr-daemon)/Check { test: false }/TargetInner { name_inferred: true, ..: lib_target("herdr_daemon", ["lib"], "/Users/apple/Projects/bive/crates/herdr-daemon/src/lib.rs", Edition2021) }
+   0.096675666s  INFO prepare_target{force=false package_id=herdr-daemon v0.1.0 (/Users/apple/Projects/bive/crates/herdr-daemon) target="herdr_daemon"}: cargo::core::compiler::fingerprint:     dirty: FsStatusOutdated(StaleDepFingerprint { name: "herdr_protocol" })
+   0.097192125s  INFO prepare_target{force=false package_id=herdr-protocol v0.1.0 (/Users/apple/Projects/bive/crates/herdr-protocol) target="herdr_protocol"}: cargo::core::compiler::fingerprint: fingerprint dirty for herdr-protocol v0.1.0 (/Users/apple/Projects/bive/crates/herdr-protocol)/Check { test: false }/TargetInner { name_inferred: true, ..: lib_target("herdr_protocol", ["lib"], "/Users/apple/Projects/bive/crates/herdr-protocol/src/lib.rs", Edition2021) }
+   0.097197041s  INFO prepare_target{force=false package_id=herdr-protocol v0.1.0 (/Users/apple/Projects/bive/crates/herdr-protocol) target="herdr_protocol"}: cargo::core::compiler::fingerprint:     dirty: FsStatusOutdated(StaleItem(ChangedFile { reference: "/Users/apple/Projects/bive/target/debug/.fingerprint/herdr-protocol-6cd1db05b1238ecd/dep-lib-herdr_protocol", reference_mtime: FileTime { seconds: 1789012395, nanos: 957420192 }, stale: "/Users/apple/Projects/bive/crates/herdr-protocol/src/profile.rs", stale_mtime: FileTime { seconds: 1789019482, nanos: 480837282 } }))
+   0.109052708s  INFO prepare_target{force=false package_id=herdr-cli v0.1.0 (/Users/apple/Projects/bive/crates/herdr-cli) target="herdr"}: cargo::core::compiler::fingerprint: fingerprint dirty for herdr-cli v0.1.0 (/Users/apple/Projects/bive/crates/herdr-cli)/Check { test: true }/TargetInner { name: "herdr", doc: true, ..: with_path("/Users/apple/Projects/bive/crates/herdr-cli/src/main.rs", Edition2021) }
+   0.109056583s  INFO prepare_target{force=false package_id=herdr-cli v0.1.0 (/Users/apple/Projects/bive/crates/herdr-cli) target="herdr"}: cargo::core::compiler::fingerprint:     dirty: FsStatusOutdated(StaleDepFingerprint { name: "herdr_protocol" })
+   0.111418875s  INFO prepare_target{force=false package_id=herdr-daemon v0.1.0 (/Users/apple/Projects/bive/crates/herdr-daemon) target="herdr_daemon"}: cargo::core::compiler::fingerprint: fingerprint dirty for herdr-daemon v0.1.0 (/Users/apple/Projects/bive/crates/herdr-daemon)/Check { test: true }/TargetInner { name_inferred: true, ..: lib_target("herdr_daemon", ["lib"], "/Users/apple/Projects/bive/crates/herdr-daemon/src/lib.rs", Edition2021) }
+   0.111422916s  INFO prepare_target{force=false package_id=herdr-daemon v0.1.0 (/Users/apple/Projects/bive/crates/herdr-daemon) target="herdr_daemon"}: cargo::core::compiler::fingerprint:     dirty: FsStatusOutdated(StaleDepFingerprint { name: "herdr_protocol" })
+   0.113669166s  INFO prepare_target{force=false package_id=herdr-desktop v0.1.0 (/Users/apple/Projects/bive/crates/herdr-desktop) target="herdr_desktop"}: cargo::core::compiler::fingerprint: fingerprint dirty for herdr-desktop v0.1.0 (/Users/apple/Projects/bive/crates/herdr-desktop)/Check { test: false }/TargetInner { name_inferred: true, ..: lib_target("herdr_desktop", ["lib"], "/Users/apple/Projects/bive/crates/herdr-desktop/src/lib.rs", Edition2021) }
+   0.113675958s  INFO prepare_target{force=false package_id=herdr-desktop v0.1.0 (/Users/apple/Projects/bive/crates/herdr-desktop) target="herdr_desktop"}: cargo::core::compiler::fingerprint:     dirty: FsStatusOutdated(StaleDepFingerprint { name: "herdr_protocol" })
+   0.114542083s  INFO prepare_target{force=false package_id=herdr-desktop v0.1.0 (/Users/apple/Projects/bive/crates/herdr-desktop) target="herdr_desktop"}: cargo::core::compiler::fingerprint: fingerprint dirty for herdr-desktop v0.1.0 (/Users/apple/Projects/bive/crates/herdr-desktop)/Check { test: true }/TargetInner { name_inferred: true, ..: lib_target("herdr_desktop", ["lib"], "/Users/apple/Projects/bive/crates/herdr-desktop/src/lib.rs", Edition2021) }
+   0.114545541s  INFO prepare_target{force=false package_id=herdr-desktop v0.1.0 (/Users/apple/Projects/bive/crates/herdr-desktop) target="herdr_desktop"}: cargo::core::compiler::fingerprint:     dirty: FsStatusOutdated(StaleDepFingerprint { name: "herdr_protocol" })
+   0.114724875s  INFO prepare_target{force=false package_id=herdr-plugin v0.1.0 (/Users/apple/Projects/bive/crates/herdr-plugin) target="herdr_plugin"}: cargo::core::compiler::fingerprint: fingerprint dirty for herdr-plugin v0.1.0 (/Users/apple/Projects/bive/crates/herdr-plugin)/Check { test: false }/TargetInner { name_inferred: true, ..: lib_target("herdr_plugin", ["lib"], "/Users/apple/Projects/bive/crates/herdr-plugin/src/lib.rs", Edition2021) }
+   0.114728166s  INFO prepare_target{force=false package_id=herdr-plugin v0.1.0 (/Users/apple/Projects/bive/crates/herdr-plugin) target="herdr_plugin"}: cargo::core::compiler::fingerprint:     dirty: FsStatusOutdated(StaleDepFingerprint { name: "herdr_protocol" })
+   0.115013083s  INFO prepare_target{force=false package_id=herdr-plugin v0.1.0 (/Users/apple/Projects/bive/crates/herdr-plugin) target="herdr_plugin"}: cargo::core::compiler::fingerprint: fingerprint dirty for herdr-plugin v0.1.0 (/Users/apple/Projects/bive/crates/herdr-plugin)/Check { test: true }/TargetInner { name_inferred: true, ..: lib_target("herdr_plugin", ["lib"], "/Users/apple/Projects/bive/crates/herdr-plugin/src/lib.rs", Edition2021) }
+   0.115016375s  INFO prepare_target{force=false package_id=herdr-plugin v0.1.0 (/Users/apple/Projects/bive/crates/herdr-plugin) target="herdr_plugin"}: cargo::core::compiler::fingerprint:     dirty: FsStatusOutdated(StaleDepFingerprint { name: "herdr_protocol" })
+   0.115256250s  INFO prepare_target{force=false package_id=herdr-protocol v0.1.0 (/Users/apple/Projects/bive/crates/herdr-protocol) target="herdr_protocol"}: cargo::core::compiler::fingerprint: stale: changed "/Users/apple/Projects/bive/crates/herdr-protocol/src/lib.rs"
+   0.115257833s  INFO prepare_target{force=false package_id=herdr-protocol v0.1.0 (/Users/apple/Projects/bive/crates/herdr-protocol) target="herdr_protocol"}: cargo::core::compiler::fingerprint:           (vs) "/Users/apple/Projects/bive/target/debug/.fingerprint/herdr-protocol-759894b0f796ff75/dep-test-lib-herdr_protocol"
+   0.115259333s  INFO prepare_target{force=false package_id=herdr-protocol v0.1.0 (/Users/apple/Projects/bive/crates/herdr-protocol) target="herdr_protocol"}: cargo::core::compiler::fingerprint:                FileTime { seconds: 1789012395, nanos: 957437734 } < FileTime { seconds: 1789019482, nanos: 479762590 }
+   0.115350500s  INFO prepare_target{force=false package_id=herdr-protocol v0.1.0 (/Users/apple/Projects/bive/crates/herdr-protocol) target="herdr_protocol"}: cargo::core::compiler::fingerprint: fingerprint dirty for herdr-protocol v0.1.0 (/Users/apple/Projects/bive/crates/herdr-protocol)/Check { test: true }/TargetInner { name_inferred: true, ..: lib_target("herdr_protocol", ["lib"], "/Users/apple/Projects/bive/crates/herdr-protocol/src/lib.rs", Edition2021) }
+   0.115355708s  INFO prepare_target{force=false package_id=herdr-protocol v0.1.0 (/Users/apple/Projects/bive/crates/herdr-protocol) target="herdr_protocol"}: cargo::core::compiler::fingerprint:     dirty: FsStatusOutdated(StaleItem(ChangedFile { reference: "/Users/apple/Projects/bive/target/debug/.fingerprint/herdr-protocol-759894b0f796ff75/dep-test-lib-herdr_protocol", reference_mtime: FileTime { seconds: 1789012395, nanos: 957437734 }, stale: "/Users/apple/Projects/bive/crates/herdr-protocol/src/lib.rs", stale_mtime: FileTime { seconds: 1789019482, nanos: 479762590 } }))
+   0.115601208s  INFO prepare_target{force=false package_id=herdr-remote v0.1.0 (/Users/apple/Projects/bive/crates/herdr-remote) target="herdr_remote"}: cargo::core::compiler::fingerprint: fingerprint dirty for herdr-remote v0.1.0 (/Users/apple/Projects/bive/crates/herdr-remote)/Check { test: false }/TargetInner { name_inferred: true, ..: lib_target("herdr_remote", ["lib"], "/Users/apple/Projects/bive/crates/herdr-remote/src/lib.rs", Edition2021) }
+   0.115604291s  INFO prepare_target{force=false package_id=herdr-remote v0.1.0 (/Users/apple/Projects/bive/crates/herdr-remote) target="herdr_remote"}: cargo::core::compiler::fingerprint:     dirty: FsStatusOutdated(StaleDepFingerprint { name: "herdr_protocol" })
+   0.115873708s  INFO prepare_target{force=false package_id=herdr-remote v0.1.0 (/Users/apple/Projects/bive/crates/herdr-remote) target="herdr_remote"}: cargo::core::compiler::fingerprint: fingerprint dirty for herdr-remote v0.1.0 (/Users/apple/Projects/bive/crates/herdr-remote)/Check { test: true }/TargetInner { name_inferred: true, ..: lib_target("herdr_remote", ["lib"], "/Users/apple/Projects/bive/crates/herdr-remote/src/lib.rs", Edition2021) }
+   0.115876708s  INFO prepare_target{force=false package_id=herdr-remote v0.1.0 (/Users/apple/Projects/bive/crates/herdr-remote) target="herdr_remote"}: cargo::core::compiler::fingerprint:     dirty: FsStatusOutdated(StaleDepFingerprint { name: "herdr_protocol" })
+   0.123541541s  INFO prepare_target{force=false package_id=herdr-tui v0.1.0 (/Users/apple/Projects/bive/crates/herdr-tui) target="herdr-tui"}: cargo::core::compiler::fingerprint: fingerprint dirty for herdr-tui v0.1.0 (/Users/apple/Projects/bive/crates/herdr-tui)/Check { test: false }/TargetInner { name: "herdr-tui", doc: true, ..: with_path("/Users/apple/Projects/bive/crates/herdr-tui/src/main.rs", Edition2021) }
+   0.123545000s  INFO prepare_target{force=false package_id=herdr-tui v0.1.0 (/Users/apple/Projects/bive/crates/herdr-tui) target="herdr-tui"}: cargo::core::compiler::fingerprint:     dirty: FsStatusOutdated(StaleDepFingerprint { name: "herdr_protocol" })
+   0.132926458s  INFO prepare_target{force=false package_id=herdr-tui v0.1.0 (/Users/apple/Projects/bive/crates/herdr-tui) target="herdr-tui"}: cargo::core::compiler::fingerprint: fingerprint dirty for herdr-tui v0.1.0 (/Users/apple/Projects/bive/crates/herdr-tui)/Check { test: true }/TargetInner { name: "herdr-tui", doc: true, ..: with_path("/Users/apple/Projects/bive/crates/herdr-tui/src/main.rs", Edition2021) }
+   0.132929916s  INFO prepare_target{force=false package_id=herdr-tui v0.1.0 (/Users/apple/Projects/bive/crates/herdr-tui) target="herdr-tui"}: cargo::core::compiler::fingerprint:     dirty: FsStatusOutdated(StaleDepFingerprint { name: "herdr_protocol" })
+    Checking herdr-protocol v0.1.0 (/Users/apple/Projects/bive/crates/herdr-protocol)
     Checking herdr-daemon v0.1.0 (/Users/apple/Projects/bive/crates/herdr-daemon)
+    Checking herdr-plugin v0.1.0 (/Users/apple/Projects/bive/crates/herdr-plugin)
+    Checking herdr-remote v0.1.0 (/Users/apple/Projects/bive/crates/herdr-remote)
     Checking herdr-tui v0.1.0 (/Users/apple/Projects/bive/crates/herdr-tui)
+    Checking herdr-desktop v0.1.0 (/Users/apple/Projects/bive/crates/herdr-desktop)
     Checking herdr-cli v0.1.0 (/Users/apple/Projects/bive/crates/herdr-cli)
-error: could not compile `herdr-cli` (bin "herdr") due to 2 previous errors; 1 warning emitted
-warning: build failed, waiting for other jobs to finish...
-error: could not compile `herdr-cli` (bin "herdr" test) due to 6 previous errors; 1 warning emitted
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 1.35s

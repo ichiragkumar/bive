@@ -101,6 +101,11 @@ herdr events                          raw NDJSON event tap
 herdr shutdown                        stop daemon + all agents
 herdr replay [--profile P] [--chunk-ms MS] [--idle N] [FILE]
                                       offline state-timeline inference (see below)
+herdr install-service [--backend B] [--dry-run]
+                                      register daemon as per-user login service
+                                      (launchd on macOS, systemd user unit on Linux)
+herdr uninstall-service [--backend B] [--dry-run]
+                                      remove the service registration
 ```
 
 ### `herdr replay` — offline profile tuning
@@ -121,6 +126,17 @@ herdr replay --profile claude-code session.raw
 # 0.050s  working
 # 12.400s blocked    ← prompt regex matched here
 ```
+
+### `herdr install-service` — login persistence + crash restart
+
+Per-user only (no root): a launchd agent (`~/Library/LaunchAgents/…plist`,
+`RunAtLoad` + `KeepAlive {SuccessfulExit: false}`) or a systemd user unit
+(`Restart=on-failure`, `WantedBy=default.target`). The plist KeepAlive dict encodes
+the crash-only contract: respawn after SIGKILL, stay down after `herdr shutdown`'s
+clean exit. To make that safe, `herdr daemon` exits **0** (not an error) when a live
+daemon already owns the socket, so launchd's login start and a manual start settle
+instead of looping. The unit references the absolute binary path of the `herdr` that
+ran the install; uninstall stops/disables best-effort and removes the file.
 
 Errors are human-readable; missing daemon ⇒ `error: daemon not reachable at <path> (start it with 'herdr daemon')`, exit 2. Unknown agent ⇒ exit 3.
 

@@ -27,7 +27,9 @@ All product and architecture decisions live in `specs/` — start at `specs/00-p
 # 1. Build
 cargo build --release
 
-# 2. Start the daemon (foreground, or background it with tmux/nohup)
+# 2. Start the daemon — either register it as a login service (recommended):
+herdr install-service          # launchd user agent on macOS, systemd user unit on Linux
+#    ... or run it in the foreground / under your own supervisor:
 ./target/release/herdr daemon
 
 # 3. In another shell: spawn an agent under a PTY
@@ -68,6 +70,8 @@ replaces it; a **live** daemon refuses a second instance.
 | `herdr events` | Raw NDJSON event tap |
 | `herdr shutdown` | Stop daemon and all agents |
 | `herdr replay [FILE]` | Offline state-timeline inference over a capture (profile tuning; no daemon needed) |
+| `herdr install-service` | Register the daemon as a per-user login service (see below) |
+| `herdr uninstall-service` | Remove the service registration |
 | `herdr-tui` | Terminal client: fleet overview + live logs (see TUI section) |
 
 Exit codes: `2` daemon unreachable, `3` unknown agent, `1` other errors.
@@ -100,6 +104,26 @@ crates/
 ├── herdr-remote/     # Phase 4 stub
 └── herdr-plugin/     # Phase 5 stub
 ```
+
+## Service registration
+
+```bash
+herdr install-service      # writes the definition + enables/starts it
+herdr install-service --dry-run   # preview the plist/unit and commands
+herdr uninstall-service    # stops, disables, removes
+```
+
+| Backend | File | Behavior |
+| --- | --- | --- |
+| launchd (macOS) | `~/Library/LaunchAgents/io.github.herdr.daemon.plist` | `RunAtLoad` (starts on login) + `KeepAlive {SuccessfulExit: false}` (respawns on crash, **stays down** after `herdr shutdown`) |
+| systemd (Linux) | `~/.config/systemd/user/herdr-daemon.service` | `WantedBy=default.target` + `Restart=on-failure` with backoff |
+
+Both are strictly per-user — no root anywhere. The registered binary is the absolute
+path of the `herdr` executable that ran `install-service`; re-run install after
+moving or rebuilding to a new location. Service logs land in
+`$TMPDIR/herdr-daemon.log`. If a live daemon already owns the socket, `herdr daemon`
+(exited via the service at login) prints `daemon already running … — nothing to do`
+and exits 0, so the two start paths never fight.
 
 ## TUI keys
 
