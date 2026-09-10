@@ -173,8 +173,14 @@ mod tests {
     #[test]
     fn multiple_lines_in_one_push() {
         let mut dec = Decoder::new();
-        let l1 = Encoder::encode_request(&RequestEnvelope { id: 1, cmd: ClientCommand::Ping });
-        let l2 = Encoder::encode_request(&RequestEnvelope { id: 2, cmd: ClientCommand::List });
+        let l1 = Encoder::encode_request(&RequestEnvelope {
+            id: 1,
+            cmd: ClientCommand::Ping,
+        });
+        let l2 = Encoder::encode_request(&RequestEnvelope {
+            id: 2,
+            cmd: ClientCommand::List,
+        });
         let got: Vec<_> = dec
             .push(format!("{l1}{l2}").as_bytes())
             .into_iter()
@@ -193,7 +199,13 @@ mod tests {
             .into_iter()
             .flatten()
             .collect();
-        assert_eq!(got, vec![RequestEnvelope { id: 3, cmd: ClientCommand::Ping }]);
+        assert_eq!(
+            got,
+            vec![RequestEnvelope {
+                id: 3,
+                cmd: ClientCommand::Ping
+            }]
+        );
     }
 
     #[test]

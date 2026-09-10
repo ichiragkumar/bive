@@ -77,12 +77,25 @@ pub struct AgentInfo {
 /// Asynchronous notifications broadcast by the daemon to every streaming client.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum DaemonEvent {
-    AgentSpawned { info: AgentInfo },
+    AgentSpawned {
+        info: AgentInfo,
+    },
     /// Raw PTY output, UTF-8-lossy, ANSI escape sequences intact.
-    AgentOutput { agent_id: AgentId, payload: String },
-    StateChange { agent_id: AgentId, state: AgentState },
-    AgentExited { agent_id: AgentId, code: i32 },
-    AgentRemoved { agent_id: AgentId },
+    AgentOutput {
+        agent_id: AgentId,
+        payload: String,
+    },
+    StateChange {
+        agent_id: AgentId,
+        state: AgentState,
+    },
+    AgentExited {
+        agent_id: AgentId,
+        code: i32,
+    },
+    AgentRemoved {
+        agent_id: AgentId,
+    },
 }
 
 /// Client → daemon commands.
@@ -126,9 +139,13 @@ pub enum Response {
     Ok,
     Err(String),
     /// Spawn succeeded; carries the daemon-assigned agent id.
-    AgentCreated { agent_id: AgentId },
+    AgentCreated {
+        agent_id: AgentId,
+    },
     AgentList(Vec<AgentInfo>),
-    LogChunk { payload: String },
+    LogChunk {
+        payload: String,
+    },
     Pong {
         version: String,
         uptime_ms: u64,
@@ -140,7 +157,9 @@ pub enum Response {
 mod tests {
     use super::*;
 
-    fn roundtrip<T: serde::Serialize + serde::de::DeserializeOwned + PartialEq + std::fmt::Debug>(
+    fn roundtrip<
+        T: serde::Serialize + serde::de::DeserializeOwned + PartialEq + std::fmt::Debug,
+    >(
         value: T,
     ) {
         let json = serde_json::to_string(&value).expect("serialize");
@@ -180,7 +199,10 @@ mod tests {
             agent_id: info.id.clone(),
             state: AgentState::Blocked,
         });
-        roundtrip(DaemonEvent::AgentExited { agent_id: info.id.clone(), code: 1 });
+        roundtrip(DaemonEvent::AgentExited {
+            agent_id: info.id.clone(),
+            code: 1,
+        });
         roundtrip(DaemonEvent::AgentRemoved { agent_id: info.id });
     }
 
@@ -196,23 +218,34 @@ mod tests {
             command: "bash".into(),
             args: vec!["-lc".into(), "echo hi".into()],
         });
-        roundtrip(ClientCommand::Kill { agent_id: "x".into() });
+        roundtrip(ClientCommand::Kill {
+            agent_id: "x".into(),
+        });
         roundtrip(ClientCommand::SendInput {
             agent_id: "x".into(),
             text: "echo hi".into(),
             raw: false,
         });
-        roundtrip(ClientCommand::Attach { agent_id: "x".into() });
-        roundtrip(ClientCommand::Logs { agent_id: "x".into(), max_bytes: 4096 });
+        roundtrip(ClientCommand::Attach {
+            agent_id: "x".into(),
+        });
+        roundtrip(ClientCommand::Logs {
+            agent_id: "x".into(),
+            max_bytes: 4096,
+        });
     }
 
     #[test]
     fn roundtrip_responses() {
         roundtrip(Response::Ok);
         roundtrip(Response::Err("nope".into()));
-        roundtrip(Response::AgentCreated { agent_id: "abc123".into() });
+        roundtrip(Response::AgentCreated {
+            agent_id: "abc123".into(),
+        });
         roundtrip(Response::AgentList(vec![]));
-        roundtrip(Response::LogChunk { payload: "abc".into() });
+        roundtrip(Response::LogChunk {
+            payload: "abc".into(),
+        });
         roundtrip(Response::Pong {
             version: "0.1.0".into(),
             uptime_ms: 5,

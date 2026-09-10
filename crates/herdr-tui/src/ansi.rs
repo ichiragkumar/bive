@@ -235,7 +235,9 @@ impl LineBuilder {
     /// Take the completed spans; SGR state persists to the next line.
     fn finish_line(&mut self) -> StyledLine {
         self.flush();
-        StyledLine { spans: std::mem::take(&mut self.spans) }
+        StyledLine {
+            spans: std::mem::take(&mut self.spans),
+        }
     }
 
     fn flush(&mut self) {

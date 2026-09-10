@@ -211,7 +211,12 @@ fn reader_loop(client: HerdrClient, mut stream: UnixStream) {
                     }
                     match parse_frame(&line) {
                         Ok(Frame::Reply(env)) => {
-                            client.inner.pending.lock().unwrap().insert(env.id, env.resp);
+                            client
+                                .inner
+                                .pending
+                                .lock()
+                                .unwrap()
+                                .insert(env.id, env.resp);
                         }
                         Ok(Frame::Event(ev)) => {
                             if let Some(tx) = client.inner.events_tx.lock().unwrap().as_ref() {

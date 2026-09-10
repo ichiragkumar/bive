@@ -17,8 +17,14 @@ use herdr_protocol::{
     AgentInfo, ClientCommand, DaemonEvent, Response,
 };
 
+mod replay;
+
 #[derive(Parser)]
-#[command(name = "herdr", version, about = "Unified agent runtime & control surface")]
+#[command(
+    name = "herdr",
+    version,
+    about = "Unified agent runtime & control surface"
+)]
 struct Cli {
     #[command(subcommand)]
     cmd: Cmd,
@@ -65,6 +71,23 @@ enum Cmd {
     Events,
     /// Stop the daemon and kill all agents.
     Shutdown,
+    /// Offline state-timeline inference over a captured PTY stream (no daemon).
+    Replay {
+        /// Profile whose regexes/timings drive inference (generic, claude-code, codex, bash).
+        #[arg(long, default_value = "generic")]
+        profile: String,
+        /// Capture to replay (raw PTY bytes or `herdr events` NDJSON); stdin if omitted.
+        file: Option<String>,
+        /// Chunking granularity in ms — approximates the daemon's read cadence.
+        #[arg(long, default_value_t = 50)]
+        chunk_ms: u64,
+        /// Interpolated idle checks per output gap (0 disables interpolation).
+        #[arg(long, default_value_t = 1)]
+        idle: u32,
+        /// Show the matched tail text on each transition for debugging regexes.
+        #[arg(long)]
+        explain: bool,
+    },
 }
 
 fn main() {
@@ -132,7 +155,9 @@ fn connect() -> Result<Connection, HerdrError> {
         }
         Err(e) => return Err(other_err(e)),
     };
-    stream.set_read_timeout(Some(Duration::from_secs(10))).map_err(other_err)?;
+    stream
+        .set_read_timeout(Some(Duration::from_secs(10)))
+        .map_err(other_err)?;
     Ok(Connection { stream })
 }
 
@@ -193,7 +218,9 @@ fn expect_ok(resp: Response, ctx: &str) -> Result<(), HerdrError> {
             Err(HerdrError::Other(anyhow!(e)))
         }
         Response::Err(e) => Err(HerdrError::Other(anyhow!("{ctx}: {e}"))),
-        other => Err(HerdrError::Other(anyhow!("{ctx}: unexpected reply {other:?}"))),
+        other => Err(HerdrError::Other(anyhow!(
+            "{ctx}: unexpected reply {other:?}"
+        ))),
     }
 }
 
@@ -204,7 +231,11 @@ fn run(cmd: Cmd) -> Result<(), HerdrError> {
             let mut conn = connect()?;
             let resp = request(&mut conn, ClientCommand::Ping)?;
             match resp {
-                Response::Pong { version, uptime_ms, agents } => {
+                Response::Pong {
+                    version,
+                    uptime_ms,
+                    agents,
+                } => {
                     println!("herdr daemon v{version} up {uptime_ms} ms, {agents} agent(s)");
                     Ok(())
                 }
@@ -212,7 +243,11 @@ fn run(cmd: Cmd) -> Result<(), HerdrError> {
                 _ => Err(HerdrError::Other(anyhow!("unexpected reply to ping"))),
             }
         }
-        Cmd::Spawn { profile, cwd, command } => {
+        Cmd::Spawn {
+            profile,
+            cwd,
+            command,
+        } => {
             if command.is_empty() {
                 return Err(HerdrError::Other(anyhow!(
                     "spawn requires a command: herdr spawn -- <command> [args...]"
@@ -255,15 +290,25 @@ fn run(cmd: Cmd) -> Result<(), HerdrError> {
                 _ => Err(HerdrError::Other(anyhow!("unexpected reply to list"))),
             }
         }
-        Cmd::Send { agent_id, text, raw } => {
+        Cmd::Send {
+            agent_id,
+            text,
+            raw,
+        } => {
             let mut conn = connect()?;
             let resp = request(
                 &mut conn,
-                ClientCommand::SendInput { agent_id: agent_id.clone(), text, raw },
+                ClientCommand::SendInput {
+                    agent_id: agent_id.clone(),
+                    text,
+                    raw,
+                },
             )?;
             match resp {
                 Response::Ok => Ok(()),
-                Response::Err(e) if e.contains("unknown agent") => Err(HerdrError::UnknownAgent(agent_id)),
+                Response::Err(e) if e.contains("unknown agent") => {
+                    Err(HerdrError::UnknownAgent(agent_id))
+                }
                 Response::Err(e) => Err(HerdrError::Other(anyhow!(e))),
                 _ => Err(HerdrError::Other(anyhow!("unexpected reply to send"))),
             }
@@ -272,7 +317,10 @@ fn run(cmd: Cmd) -> Result<(), HerdrError> {
             let mut conn = connect()?;
             let resp = request(
                 &mut conn,
-                ClientCommand::Logs { agent_id: agent_id.clone(), max_bytes: bytes },
+                ClientCommand::Logs {
+                    agent_id: agent_id.clone(),
+                    max_bytes: bytes,
+                },
             )?;
             match resp {
                 Response::LogChunk { payload } => {
@@ -280,20 +328,29 @@ fn run(cmd: Cmd) -> Result<(), HerdrError> {
                     let _ = std::io::stdout().flush();
                     Ok(())
                 }
-                Response::Err(e) if e.contains("unknown agent") => Err(HerdrError::UnknownAgent(agent_id)),
+                Response::Err(e) if e.contains("unknown agent") => {
+                    Err(HerdrError::UnknownAgent(agent_id))
+                }
                 Response::Err(e) => Err(HerdrError::Other(anyhow!(e))),
                 _ => Err(HerdrError::Other(anyhow!("unexpected reply to logs"))),
             }
         }
         Cmd::Kill { agent_id } => {
             let mut conn = connect()?;
-            let resp = request(&mut conn, ClientCommand::Kill { agent_id: agent_id.clone() })?;
+            let resp = request(
+                &mut conn,
+                ClientCommand::Kill {
+                    agent_id: agent_id.clone(),
+                },
+            )?;
             match resp {
                 Response::Ok => {
                     println!("killed {agent_id}");
                     Ok(())
                 }
-                Response::Err(e) if e.contains("unknown agent") => Err(HerdrError::UnknownAgent(agent_id)),
+                Response::Err(e) if e.contains("unknown agent") => {
+                    Err(HerdrError::UnknownAgent(agent_id))
+                }
                 Response::Err(e) => Err(HerdrError::Other(anyhow!(e))),
                 _ => Err(HerdrError::Other(anyhow!("unexpected reply to kill"))),
             }
@@ -307,6 +364,20 @@ fn run(cmd: Cmd) -> Result<(), HerdrError> {
         }
         Cmd::Events => events_tap(),
         Cmd::Attach { agent_id } => attach(agent_id),
+        Cmd::Replay {
+            profile,
+            file,
+            chunk_ms,
+            idle,
+            explain,
+        } => replay::run(replay::ReplayArgs {
+            profile,
+            file,
+            chunk_ms,
+            idle,
+            explain,
+        })
+        .map_err(other_err),
     }
 }
 
@@ -340,7 +411,10 @@ fn daemon() -> Result<(), HerdrError> {
 /// Probe a socket: does a live herdr daemon answer there?
 fn daemon_is_live(sock: &PathBuf) -> bool {
     if let Ok(stream) = UnixStream::connect(sock) {
-        if stream.set_read_timeout(Some(Duration::from_millis(500))).is_ok() {
+        if stream
+            .set_read_timeout(Some(Duration::from_millis(500)))
+            .is_ok()
+        {
             let mut conn = Connection { stream };
             if request(&mut conn, ClientCommand::Ping).is_ok() {
                 return true;
@@ -356,7 +430,9 @@ fn events_tap() -> Result<(), HerdrError> {
     let resp = request(&mut conn, ClientCommand::Events)?;
     expect_ok(resp, "events")?;
     // Long read timeout: we just want the stream.
-    conn.stream.set_read_timeout(Some(Duration::from_secs(600))).map_err(other_err)?;
+    conn.stream
+        .set_read_timeout(Some(Duration::from_secs(600)))
+        .map_err(other_err)?;
     loop {
         match conn.read_line_json() {
             Ok(Some(line)) => {
@@ -375,7 +451,12 @@ fn events_tap() -> Result<(), HerdrError> {
 /// Ctrl-C detaches (SIGINT kills this process only — agents live in the daemon).
 fn attach(agent_id: String) -> Result<(), HerdrError> {
     let mut conn = connect()?;
-    let resp = request(&mut conn, ClientCommand::Attach { agent_id: agent_id.clone() })?;
+    let resp = request(
+        &mut conn,
+        ClientCommand::Attach {
+            agent_id: agent_id.clone(),
+        },
+    )?;
     expect_ok(resp, "attach").map_err(|e| match e {
         HerdrError::Other(msg) if msg.to_string().contains("unknown agent") => {
             HerdrError::UnknownAgent(agent_id.clone())
@@ -383,12 +464,16 @@ fn attach(agent_id: String) -> Result<(), HerdrError> {
         other => other,
     })?;
     // Attach is long-lived; lift the 10s request timeout.
-    conn.stream.set_read_timeout(Some(Duration::from_secs(600))).map_err(other_err)?;
+    conn.stream
+        .set_read_timeout(Some(Duration::from_secs(600)))
+        .map_err(other_err)?;
     eprintln!("── attached to {agent_id} — Ctrl-C detaches (agent keeps running) ──");
 
     // Reader thread: print output + state + exit lines.
     let (tx, rx) = std::sync::mpsc::channel::<String>();
-    let mut reader_conn = Connection { stream: conn.stream.try_clone().map_err(other_err)? };
+    let mut reader_conn = Connection {
+        stream: conn.stream.try_clone().map_err(other_err)?,
+    };
     std::thread::spawn(move || loop {
         match reader_conn.read_line_json() {
             Ok(Some(line)) => {
@@ -407,11 +492,17 @@ fn attach(agent_id: String) -> Result<(), HerdrError> {
             if let Some(ev_val) = v.get("event") {
                 if let Ok(event) = serde_json::from_value::<DaemonEvent>(ev_val.clone()) {
                     match event {
-                        DaemonEvent::AgentOutput { agent_id: id, payload } if id == agent_id => {
+                        DaemonEvent::AgentOutput {
+                            agent_id: id,
+                            payload,
+                        } if id == agent_id => {
                             let _ = write!(out, "{payload}");
                             let _ = out.flush();
                         }
-                        DaemonEvent::StateChange { agent_id: id, state } if id == agent_id => {
+                        DaemonEvent::StateChange {
+                            agent_id: id,
+                            state,
+                        } if id == agent_id => {
                             let _ = writeln!(out, "\n── state: {state} ──");
                             let _ = out.flush();
                         }
@@ -433,7 +524,10 @@ fn print_agent_table(agents: &[AgentInfo]) {
         println!("no agents — spawn one with: herdr spawn -- <command>");
         return;
     }
-    println!("{:<14} {:<12} {:<14} {:<28} COMMAND", "ID", "PROFILE", "STATE", "CWD");
+    println!(
+        "{:<14} {:<12} {:<14} {:<28} COMMAND",
+        "ID", "PROFILE", "STATE", "CWD"
+    );
     for a in agents {
         println!(
             "{:<14} {:<12} {:<14} {:<28} {}",

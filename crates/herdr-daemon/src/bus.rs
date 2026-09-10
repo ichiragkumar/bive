@@ -57,7 +57,12 @@ mod tests {
     #[tokio::test]
     async fn publish_with_no_subscribers_is_fine() {
         let bus = EventBus::new();
-        assert_eq!(bus.publish(DaemonEvent::AgentRemoved { agent_id: "x".into() }), 0);
+        assert_eq!(
+            bus.publish(DaemonEvent::AgentRemoved {
+                agent_id: "x".into()
+            }),
+            0
+        );
     }
 
     #[tokio::test]
@@ -70,6 +75,9 @@ mod tests {
                 payload: i.to_string(),
             });
         }
-        assert!(matches!(rx.recv().await, Err(broadcast::error::RecvError::Lagged(_))));
+        assert!(matches!(
+            rx.recv().await,
+            Err(broadcast::error::RecvError::Lagged(_))
+        ));
     }
 }

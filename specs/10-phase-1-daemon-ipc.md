@@ -99,6 +99,27 @@ herdr logs <id> [--bytes N]           replay ring buffer (default 4096)
 herdr kill <id>
 herdr events                          raw NDJSON event tap
 herdr shutdown                        stop daemon + all agents
+herdr replay [--profile P] [--chunk-ms MS] [--idle N] [FILE]
+                                      offline state-timeline inference (see below)
+```
+
+### `herdr replay` — offline profile tuning
+
+Runs the *same* `StateMachine` + `AnsiStripper` the daemon uses, over a captured
+stream (raw PTY bytes on stdin or `FILE`), and prints the inferred state timeline
+with per-transition offsets. Profile selection matches `spawn` (`--profile claude-code`,
+etc.). `--chunk-ms` controls the chunking granularity (defaults to 50 ms, matching the
+daemon's read cadence); `--idle` interpolates idle checks between chunks so gaps
+longer than the profile's idle timeout show up in the timeline. Captures come from
+`herdr events > capture.ndjson` (`AgentOutput` payloads concatenated) or any raw
+PTY recording:
+
+```bash
+herdr events | jq -rj '.event.AgentOutput.payload' > session.raw
+herdr replay --profile claude-code session.raw
+# 0.000s  starting
+# 0.050s  working
+# 12.400s blocked    ← prompt regex matched here
 ```
 
 Errors are human-readable; missing daemon ⇒ `error: daemon not reachable at <path> (start it with 'herdr daemon')`, exit 2. Unknown agent ⇒ exit 3.

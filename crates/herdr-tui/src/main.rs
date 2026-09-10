@@ -20,9 +20,8 @@ use client::HerdrClient;
 use herdr_protocol::{ClientCommand, DaemonEvent};
 
 fn main() -> Result<()> {
-    let mut client = HerdrClient::connect().map_err(|e| {
-        anyhow::anyhow!("{e} — start the daemon with `herdr daemon` first")
-    })?;
+    let mut client = HerdrClient::connect()
+        .map_err(|e| anyhow::anyhow!("{e} — start the daemon with `herdr daemon` first"))?;
     let event_rx = client.start_reader();
 
     let mut terminal = ratatui::init();
@@ -92,7 +91,9 @@ fn run(
             }
         }
         // 4. Redraw (50 ms tick from poll_keys paces the loop).
-        terminal.draw(|f| ui::draw(f, app)).context("drawing frame")?;
+        terminal
+            .draw(|f| ui::draw(f, app))
+            .context("drawing frame")?;
     }
 }
 
@@ -129,7 +130,8 @@ fn poll_keys() -> Result<Vec<KeyEvent>> {
     loop {
         match event::read()? {
             Event::Key(k) => {
-                if matches!(k.code, KeyCode::Char('c')) && k.modifiers.contains(KeyModifiers::CONTROL)
+                if matches!(k.code, KeyCode::Char('c'))
+                    && k.modifiers.contains(KeyModifiers::CONTROL)
                 {
                     keys.push(KeyEvent::new(KeyCode::Char('q'), KeyModifiers::empty()));
                 } else {

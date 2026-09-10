@@ -18,10 +18,26 @@ use herdr_protocol::{AgentProfile, AgentState};
 /// Length of the sliding window (chars) scanned for prompt/error matches.
 const WINDOW_CHARS: usize = 256;
 
+/// Time source. Live agents measure idle against the wall clock; replay (used by
+/// `herdr replay`) simulates a monotonic offset clock in seconds so timelines are
+/// deterministic.
+#[derive(Debug, Clone, Copy)]
+enum Clock {
+    Live,
+    Replay {
+        /// Current simulated time.
+        offset: f64,
+        /// Simulated time of the last output chunk.
+        last_output: f64,
+    },
+}
+
 pub struct StateMachine {
     current: AgentState,
     window: String,
+    /// Wall-clock reference for `Clock::Live` idle checks.
     last_output: Instant,
+    clock: Clock,
     prompt_regexes: Vec<Regex>,
     error_regexes: Vec<Regex>,
     idle_timeout: Duration,
@@ -33,14 +49,35 @@ impl StateMachine {
             current: AgentState::Starting,
             window: String::with_capacity(WINDOW_CHARS * 2),
             last_output: Instant::now(),
+            clock: Clock::Live,
             prompt_regexes: compile(&profile.prompt_regexes),
             error_regexes: compile(&profile.error_regexes),
             idle_timeout: Duration::from_secs(profile.idle_timeout_secs),
         }
     }
 
+    /// Replay-mode constructor: idle timing runs on a simulated offset clock
+    /// (seconds) instead of the wall clock, so `herdr replay` timelines are
+    /// deterministic and independent of real elapsed time.
+    pub fn new_replay(profile: &AgentProfile) -> Self {
+        Self {
+            clock: Clock::Replay {
+                offset: 0.0,
+                last_output: 0.0,
+            },
+            ..Self::new(profile)
+        }
+    }
+
     pub fn current(&self) -> &AgentState {
         &self.current
+    }
+
+    /// Read-only view of the sliding window (the last `WINDOW_CHARS` chars of
+    /// ANSI-stripped text) — used by `herdr replay --explain` to show which tail
+    /// produced a transition.
+    pub fn window_tail(&self) -> &str {
+        &self.window
     }
 
     /// Feed a chunk of ANSI-stripped text. Returns the new state if it changed.
@@ -50,6 +87,66 @@ impl StateMachine {
             return None;
         }
         self.last_output = Instant::now();
+        self.ingest(text)
+    }
+
+    /// [`process_chunk`](Self::process_chunk) at an explicit offset (simulated
+    /// seconds). Requires [`new_replay`](Self::new_replay); on a live machine it
+    /// degrades to the wall-clock variant. Same stream + offsets ⇒ same timeline.
+    pub fn process_chunk_at(&mut self, text: &str, offset_secs: f64) -> Option<AgentState> {
+        if matches!(self.current, AgentState::Exited(_) | AgentState::Errored(_)) {
+            return None;
+        }
+        if let Clock::Replay {
+            offset,
+            last_output,
+        } = &mut self.clock
+        {
+            // Monotonicity is the caller's job; clamp backwards offsets.
+            *offset = offset_secs.max(*offset);
+            *last_output = *offset;
+        } else {
+            self.last_output = Instant::now();
+        }
+        self.ingest(text)
+    }
+
+    /// Called on a periodic tick; returns the new state if idle fired.
+    pub fn check_idle(&mut self) -> Option<AgentState> {
+        if matches!(self.current, AgentState::Working | AgentState::Starting)
+            && self.last_output.elapsed() >= self.idle_timeout
+        {
+            return self.transition_to(AgentState::Idle);
+        }
+        None
+    }
+
+    /// [`check_idle`](Self::check_idle) at an explicit simulated offset for
+    /// deterministic timeline reconstruction (see [`process_chunk_at`](Self::process_chunk_at)).
+    pub fn check_idle_at(&mut self, offset_secs: f64) -> Option<AgentState> {
+        if matches!(self.current, AgentState::Exited(_) | AgentState::Errored(_)) {
+            return None;
+        }
+        let elapsed = match &mut self.clock {
+            Clock::Replay {
+                offset,
+                last_output,
+            } => {
+                *offset = offset_secs.max(*offset);
+                Duration::from_secs_f64((*offset - *last_output).max(0.0))
+            }
+            Clock::Live => self.last_output.elapsed(),
+        };
+        if matches!(self.current, AgentState::Working | AgentState::Starting)
+            && elapsed >= self.idle_timeout
+        {
+            return self.transition_to(AgentState::Idle);
+        }
+        None
+    }
+
+    /// Shared classification path: push into the sliding window and re-classify.
+    fn ingest(&mut self, text: &str) -> Option<AgentState> {
         self.window.push_str(text);
 
         // Keep only the last WINDOW_CHARS chars, respecting char boundaries.
@@ -68,19 +165,12 @@ impl StateMachine {
         self.transition_to(next)
     }
 
-    /// Called on a periodic tick; returns the new state if idle fired.
-    pub fn check_idle(&mut self) -> Option<AgentState> {
-        if matches!(self.current, AgentState::Working | AgentState::Starting)
-            && self.last_output.elapsed() >= self.idle_timeout
-        {
-            return self.transition_to(AgentState::Idle);
-        }
-        None
-    }
-
     /// Force a state (exit handling). Returns Some if it changed.
     pub fn set_terminal(&mut self, state: AgentState) -> Option<AgentState> {
-        debug_assert!(matches!(state, AgentState::Exited(_) | AgentState::Errored(_)));
+        debug_assert!(matches!(
+            state,
+            AgentState::Exited(_) | AgentState::Errored(_)
+        ));
         self.transition_to(state)
     }
 
@@ -159,7 +249,10 @@ mod tests {
         let mut sm = sm_generic();
         sm.process_chunk("? (y/n): ");
         assert_eq!(*sm.current(), AgentState::Blocked);
-        assert_eq!(sm.process_chunk("ok, proceeding\n"), Some(AgentState::Working));
+        assert_eq!(
+            sm.process_chunk("ok, proceeding\n"),
+            Some(AgentState::Working)
+        );
     }
 
     #[test]
@@ -241,7 +334,10 @@ mod tests {
         sm.process_chunk(&chunk);
         sm.process_chunk("tail?");
         // No panic + still functional is the contract here.
-        assert!(matches!(*sm.current(), AgentState::Blocked | AgentState::Working));
+        assert!(matches!(
+            *sm.current(),
+            AgentState::Blocked | AgentState::Working
+        ));
     }
 
     #[test]

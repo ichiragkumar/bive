@@ -55,11 +55,8 @@ fn draw_summary(f: &mut Frame, app: &App, area: Rect) {
 }
 
 fn draw_body(f: &mut Frame, app: &App, area: Rect) {
-    let [fleet, logs] = Layout::horizontal([
-        Constraint::Percentage(30),
-        Constraint::Percentage(70),
-    ])
-    .areas(area);
+    let [fleet, logs] =
+        Layout::horizontal([Constraint::Percentage(30), Constraint::Percentage(70)]).areas(area);
 
     draw_fleet(f, app, fleet);
     draw_log_pane(f, app, logs);
@@ -93,7 +90,8 @@ fn agent_line(view: &crate::app::AgentView, selected: bool) -> Line<'_> {
     let info = &view.info;
     let mut spans = vec![
         Span::from(format!("{} ", state_glyph(&info.state))),
-        Span::from(format!("{:<12} ", info.id)).style(Style::default().add_modifier(Modifier::BOLD)),
+        Span::from(format!("{:<12} ", info.id))
+            .style(Style::default().add_modifier(Modifier::BOLD)),
         Span::from(format!("{:<11} ", info.profile)).style(Style::default().dim()),
         Span::from(state_label(&info.state)),
     ];
@@ -143,9 +141,7 @@ fn draw_log_pane(f: &mut Frame, app: &App, area: Rect) {
             let view = &app.agents[id];
             Span::from(format!(
                 " {} · {} · {} ",
-                id,
-                view.info.profile,
-                view.info.command
+                id, view.info.profile, view.info.command
             ))
             .style(state_color(&view.info.state))
         }
@@ -155,7 +151,14 @@ fn draw_log_pane(f: &mut Frame, app: &App, area: Rect) {
     let block = Block::default()
         .borders(Borders::ALL)
         .title(title)
-        .title_bottom(Span::from(if app.follow { " follow ⏬ " } else { " scrolled ⏸ " }).dim());
+        .title_bottom(
+            Span::from(if app.follow {
+                " follow ⏬ "
+            } else {
+                " scrolled ⏸ "
+            })
+            .dim(),
+        );
 
     let inner = block.inner(area);
     f.render_widget(block, area);
@@ -200,11 +203,7 @@ fn draw_log_pane(f: &mut Frame, app: &App, area: Rect) {
                 continue;
             }
             let start = row * width as usize;
-            let slice: String = chars
-                .iter()
-                .skip(start)
-                .take(width as usize)
-                .collect();
+            let slice: String = chars.iter().skip(start).take(width as usize).collect();
             if slice.is_empty() {
                 rendered.push(Line::from(""));
             } else {
@@ -232,10 +231,7 @@ fn span_style_at(line: &crate::ansi::StyledLine, at: usize) -> Style {
         }
         offset += len;
     }
-    line.spans
-        .last()
-        .map(|s| s.style)
-        .unwrap_or_default()
+    line.spans.last().map(|s| s.style).unwrap_or_default()
 }
 
 fn draw_status(f: &mut Frame, app: &App, area: Rect) {
@@ -277,7 +273,11 @@ fn draw_reconnect_overlay(f: &mut Frame, area: Rect) {
     let popup = centered_rect(area, 60, 5);
     f.render_widget(ratatui::widgets::Clear, popup);
     f.render_widget(
-        block.block(Block::default().borders(Borders::ALL).style(Style::default().yellow())),
+        block.block(
+            Block::default()
+                .borders(Borders::ALL)
+                .style(Style::default().yellow()),
+        ),
         popup,
     );
 }
@@ -317,5 +317,10 @@ fn centered_rect(area: Rect, percent_x: u16, height: u16) -> Rect {
     let w = area.width * percent_x / 100;
     let x = area.x + (area.width.saturating_sub(w)) / 2;
     let y = area.y + (area.height.saturating_sub(height)) / 2;
-    Rect { x, y, width: w.min(area.width), height: height.min(area.height) }
+    Rect {
+        x,
+        y,
+        width: w.min(area.width),
+        height: height.min(area.height),
+    }
 }

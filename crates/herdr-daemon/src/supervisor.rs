@@ -81,7 +81,10 @@ impl Supervisor {
                     Response::Err(format!("unknown agent {agent_id}"))
                 }
             }
-            ClientCommand::Logs { agent_id, max_bytes } => self.logs(&agent_id, max_bytes),
+            ClientCommand::Logs {
+                agent_id,
+                max_bytes,
+            } => self.logs(&agent_id, max_bytes),
             ClientCommand::Events => Response::Ok, // connection is now streaming
         }
     }
@@ -169,7 +172,11 @@ impl Supervisor {
         if !self.registry.contains(agent_id) {
             return Response::Err(format!("unknown agent {agent_id}"));
         }
-        let payload = if raw { text.to_string() } else { format!("{text}\n") };
+        let payload = if raw {
+            text.to_string()
+        } else {
+            format!("{text}\n")
+        };
         let bytes = payload.into_bytes();
 
         let written = self.registry.with_agent(agent_id, |e| match &e.writer {
@@ -190,7 +197,9 @@ impl Supervisor {
     }
 
     fn logs(&self, agent_id: &str, max_bytes: u32) -> Response {
-        let tail = self.registry.with_agent(agent_id, |e| e.ring_tail(max_bytes as usize));
+        let tail = self
+            .registry
+            .with_agent(agent_id, |e| e.ring_tail(max_bytes as usize));
         match tail {
             Some(payload) => Response::LogChunk { payload },
             None => Response::Err(format!("unknown agent {agent_id}")),
@@ -201,11 +210,7 @@ impl Supervisor {
     pub async fn shutdown_all(&self) {
         let ids = self.registry.all_ids();
         for id in ids {
-            if let Some(killer) = self
-                .registry
-                .with_agent(&id, |e| e.killer.take())
-                .flatten()
-            {
+            if let Some(killer) = self.registry.with_agent(&id, |e| e.killer.take()).flatten() {
                 killer.kill();
             }
         }

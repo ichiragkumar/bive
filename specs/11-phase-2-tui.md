@@ -1,6 +1,6 @@
 # Phase 2 Spec — TUI Client (Ratatui)
 
-> Status: **Spec — not yet implemented**. Depends on: Phase 1 contract (`10-phase-1-daemon-ipc.md`) — no daemon changes required.
+> Status: **Implemented** (45 unit tests + live smoke test against a real daemon). Depends on: Phase 1 contract (`10-phase-1-daemon-ipc.md`) — no daemon changes required.
 
 ## Goal
 

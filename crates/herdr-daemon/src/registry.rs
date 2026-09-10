@@ -154,7 +154,11 @@ impl Registry {
     }
 
     /// Mutate one agent's info (state updates).
-    pub fn update_info<F: FnOnce(&mut AgentInfo)>(&self, agent_id: &str, f: F) -> Option<AgentInfo> {
+    pub fn update_info<F: FnOnce(&mut AgentInfo)>(
+        &self,
+        agent_id: &str,
+        f: F,
+    ) -> Option<AgentInfo> {
         let mut guard = self.agents.write().expect("registry poisoned");
         let entry = guard.get_mut(agent_id)?;
         f(&mut entry.info);
@@ -162,11 +166,7 @@ impl Registry {
     }
 
     /// Run a closure with mutable access to one agent (writer/killer/ring).
-    pub fn with_agent<R>(
-        &self,
-        agent_id: &str,
-        f: impl FnOnce(&mut AgentEntry) -> R,
-    ) -> Option<R> {
+    pub fn with_agent<R>(&self, agent_id: &str, f: impl FnOnce(&mut AgentEntry) -> R) -> Option<R> {
         let mut guard = self.agents.write().expect("registry poisoned");
         guard.get_mut(agent_id).map(f)
     }

@@ -15,7 +15,9 @@ pub mod profile;
 pub mod socket;
 pub mod types;
 
-pub use codec::{Decoder, Encoder, RequestEnvelope, ResponseEnvelope, EventEnvelope, MAX_LINE_BYTES};
+pub use codec::{
+    Decoder, Encoder, EventEnvelope, RequestEnvelope, ResponseEnvelope, MAX_LINE_BYTES,
+};
 pub use profile::AgentProfile;
 pub use socket::default_socket_path;
 pub use types::{AgentId, AgentInfo, AgentState, ClientCommand, DaemonEvent, Response};

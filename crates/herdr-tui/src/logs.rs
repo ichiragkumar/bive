@@ -97,7 +97,13 @@ pub fn render_window(
 ) -> (Window, usize) {
     let height = area_height.max(1) as usize;
     if lines.is_empty() {
-        return (Window { start_line: 0, start_row: 0 }, 0);
+        return (
+            Window {
+                start_line: 0,
+                start_row: 0,
+            },
+            0,
+        );
     }
 
     // Total rows in wrap mode.
@@ -121,13 +127,25 @@ pub fn render_window(
             start_line = idx;
             start_row = 0;
         }
-        return (Window { start_line, start_row }, total_rows);
+        return (
+            Window {
+                start_line,
+                start_row,
+            },
+            total_rows,
+        );
     }
 
     // Scroll mode: top of viewport is `scroll_line` row offset 0 (logical-line
     // granularity; sub-line rows are approximated by clamping).
     let start_line = scroll_line.min(lines.len() - 1);
-    (Window { start_line, start_row: 0 }, total_rows)
+    (
+        Window {
+            start_line,
+            start_row: 0,
+        },
+        total_rows,
+    )
 }
 
 #[cfg(test)]
@@ -136,7 +154,12 @@ mod tests {
     use ratatui::style::Style;
 
     fn line(text: &str) -> StyledLine {
-        StyledLine { spans: vec![crate::ansi::Span { content: text.into(), style: Style::default() }] }
+        StyledLine {
+            spans: vec![crate::ansi::Span {
+                content: text.into(),
+                style: Style::default(),
+            }],
+        }
     }
 
     #[test]
@@ -173,9 +196,7 @@ mod tests {
         let mut buf = LogBuffer::new();
         // Feed 12,000 lines in newline-terminated batches of 100.
         for batch in (0..12_000).step_by(100) {
-            let chunk: String = (batch..batch + 100)
-                .map(|i| format!("line{i}\n"))
-                .collect();
+            let chunk: String = (batch..batch + 100).map(|i| format!("line{i}\n")).collect();
             buf.feed(&chunk);
         }
         assert_eq!(buf.len(), MAX_LINES);
@@ -188,7 +209,10 @@ mod tests {
         let mut buf = LogBuffer::new();
         buf.feed("\x1b[32m");
         buf.feed("green\n");
-        assert_eq!(buf.lines[0].spans[0].style.fg, Some(ratatui::style::Color::Green));
+        assert_eq!(
+            buf.lines[0].spans[0].style.fg,
+            Some(ratatui::style::Color::Green)
+        );
         assert_eq!(buf.lines[0].text(), "green");
     }
 

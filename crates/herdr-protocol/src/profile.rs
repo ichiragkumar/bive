@@ -87,18 +87,12 @@ static BUILTIN: LazyLock<Vec<AgentProfile>> = LazyLock::new(|| {
                 r"\?\s*$".into(),
                 r"(?i)\(y/n\)[?:]?\s*$".into(),
             ],
-            error_regexes: vec![
-                r"thread '[^']+' panicked at".into(),
-                r"(?m)^Error: ".into(),
-            ],
+            error_regexes: vec![r"thread '[^']+' panicked at".into(), r"(?m)^Error: ".into()],
             idle_timeout_secs: 45,
         },
         AgentProfile {
             name: "bash".into(),
-            prompt_regexes: vec![
-                r"(?m)(\$|#)\s*$".into(),
-                r"(?m)❯\s*$".into(),
-            ],
+            prompt_regexes: vec![r"(?m)(\$|#)\s*$".into(), r"(?m)❯\s*$".into()],
             error_regexes: vec![r"(?m)^bash: line \d+: .*".into()],
             idle_timeout_secs: 15,
         },
@@ -144,7 +138,13 @@ mod tests {
             .collect();
         // NOTE: this test compiles regexes with the `regex` crate, which is a
         // dev-only dependency.
-        let tails = ["Allow? (y/n): ", "? ", "$ ", "❯ ", "Press Enter to continue"];
+        let tails = [
+            "Allow? (y/n): ",
+            "? ",
+            "$ ",
+            "❯ ",
+            "Press Enter to continue",
+        ];
         for tail in tails {
             assert!(
                 compiled.iter().any(|re| re.is_match(tail)),

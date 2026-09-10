@@ -198,10 +198,13 @@ impl App {
                     view.info.last_output_unix_ms = info.last_output_unix_ms;
                 }
                 None => {
-                    self.agents.insert(id.clone(), AgentView {
-                        info,
-                        logs: LogBuffer::new(),
-                    });
+                    self.agents.insert(
+                        id.clone(),
+                        AgentView {
+                            info,
+                            logs: LogBuffer::new(),
+                        },
+                    );
                 }
             }
         }
@@ -272,7 +275,9 @@ impl App {
                 match key.code {
                     KeyCode::Char('y') | KeyCode::Char('Y') => {
                         if let Some(id) = self.selected_id().map(str::to_string) {
-                            self.request_needed = Some(ClientCommand::Kill { agent_id: id.clone() });
+                            self.request_needed = Some(ClientCommand::Kill {
+                                agent_id: id.clone(),
+                            });
                             self.flash_now(format!("killing {id}…"));
                         }
                     }
@@ -399,7 +404,9 @@ mod tests {
     #[test]
     fn spawn_then_output_then_state() {
         let mut app = App::new();
-        app.apply_event(DaemonEvent::AgentSpawned { info: info("a", AgentState::Starting) });
+        app.apply_event(DaemonEvent::AgentSpawned {
+            info: info("a", AgentState::Starting),
+        });
         assert_eq!(app.order, vec!["a"]);
         app.apply_event(DaemonEvent::AgentOutput {
             agent_id: "a".into(),
@@ -427,7 +434,9 @@ mod tests {
     #[test]
     fn list_reconcile_preserves_fresher_state_and_logs() {
         let mut app = App::new();
-        app.apply_event(DaemonEvent::AgentSpawned { info: info("a", AgentState::Starting) });
+        app.apply_event(DaemonEvent::AgentSpawned {
+            info: info("a", AgentState::Starting),
+        });
         app.apply_event(DaemonEvent::AgentOutput {
             agent_id: "a".into(),
             payload: "log line\n".into(),
@@ -445,8 +454,12 @@ mod tests {
     #[test]
     fn list_reconcile_drops_removed_agents() {
         let mut app = App::new();
-        app.apply_event(DaemonEvent::AgentSpawned { info: info("a", AgentState::Working) });
-        app.apply_event(DaemonEvent::AgentSpawned { info: info("b", AgentState::Working) });
+        app.apply_event(DaemonEvent::AgentSpawned {
+            info: info("a", AgentState::Working),
+        });
+        app.apply_event(DaemonEvent::AgentSpawned {
+            info: info("b", AgentState::Working),
+        });
         app.apply_response(Response::AgentList(vec![info("a", AgentState::Working)]));
         assert_eq!(app.order, vec!["a"]);
         assert!(app.agents.contains_key("a"));
@@ -456,8 +469,12 @@ mod tests {
     #[test]
     fn selection_survives_list_refresh() {
         let mut app = App::new();
-        app.apply_event(DaemonEvent::AgentSpawned { info: info("a", AgentState::Working) });
-        app.apply_event(DaemonEvent::AgentSpawned { info: info("b", AgentState::Working) });
+        app.apply_event(DaemonEvent::AgentSpawned {
+            info: info("a", AgentState::Working),
+        });
+        app.apply_event(DaemonEvent::AgentSpawned {
+            info: info("b", AgentState::Working),
+        });
         app.select_agent("b");
         assert_eq!(app.selected, 1);
         app.apply_response(Response::AgentList(vec![
@@ -470,10 +487,16 @@ mod tests {
     #[test]
     fn removal_clamps_selection() {
         let mut app = App::new();
-        app.apply_event(DaemonEvent::AgentSpawned { info: info("a", AgentState::Working) });
-        app.apply_event(DaemonEvent::AgentSpawned { info: info("b", AgentState::Working) });
+        app.apply_event(DaemonEvent::AgentSpawned {
+            info: info("a", AgentState::Working),
+        });
+        app.apply_event(DaemonEvent::AgentSpawned {
+            info: info("b", AgentState::Working),
+        });
         app.select_agent("b");
-        app.apply_event(DaemonEvent::AgentRemoved { agent_id: "b".into() });
+        app.apply_event(DaemonEvent::AgentRemoved {
+            agent_id: "b".into(),
+        });
         assert_eq!(app.order, vec!["a"]);
         assert_eq!(app.selected, 0);
         assert_eq!(app.selected_id(), Some("a"));
@@ -482,9 +505,15 @@ mod tests {
     #[test]
     fn counts_categorize_states() {
         let mut app = App::new();
-        app.apply_event(DaemonEvent::AgentSpawned { info: info("a", AgentState::Working) });
-        app.apply_event(DaemonEvent::AgentSpawned { info: info("b", AgentState::Blocked) });
-        app.apply_event(DaemonEvent::AgentSpawned { info: info("c", AgentState::Idle) });
+        app.apply_event(DaemonEvent::AgentSpawned {
+            info: info("a", AgentState::Working),
+        });
+        app.apply_event(DaemonEvent::AgentSpawned {
+            info: info("b", AgentState::Blocked),
+        });
+        app.apply_event(DaemonEvent::AgentSpawned {
+            info: info("c", AgentState::Idle),
+        });
         app.apply_event(DaemonEvent::AgentSpawned {
             info: info("d", AgentState::Errored("x".into())),
         });
@@ -495,7 +524,9 @@ mod tests {
     fn keys_navigate_selection() {
         let mut app = App::new();
         for id in ["a", "b", "c"] {
-            app.apply_event(DaemonEvent::AgentSpawned { info: info(id, AgentState::Working) });
+            app.apply_event(DaemonEvent::AgentSpawned {
+                info: info(id, AgentState::Working),
+            });
         }
         app.handle_key(key(KeyCode::Char('j')));
         assert_eq!(app.selected_id(), Some("b"));
@@ -510,8 +541,12 @@ mod tests {
     #[test]
     fn selection_resets_follow() {
         let mut app = App::new();
-        app.apply_event(DaemonEvent::AgentSpawned { info: info("a", AgentState::Working) });
-        app.apply_event(DaemonEvent::AgentSpawned { info: info("b", AgentState::Working) });
+        app.apply_event(DaemonEvent::AgentSpawned {
+            info: info("a", AgentState::Working),
+        });
+        app.apply_event(DaemonEvent::AgentSpawned {
+            info: info("b", AgentState::Working),
+        });
         app.follow = false;
         app.scroll_line = 40;
         app.handle_key(key(KeyCode::Down));
@@ -522,7 +557,9 @@ mod tests {
     #[test]
     fn send_mode_collects_input_and_submits() {
         let mut app = App::new();
-        app.apply_event(DaemonEvent::AgentSpawned { info: info("a", AgentState::Working) });
+        app.apply_event(DaemonEvent::AgentSpawned {
+            info: info("a", AgentState::Working),
+        });
         app.handle_key(key(KeyCode::Char('s')));
         assert_eq!(app.mode, Mode::SendInput);
         for ch in "echo hi".chars() {
@@ -542,7 +579,9 @@ mod tests {
     #[test]
     fn send_mode_esc_cancels() {
         let mut app = App::new();
-        app.apply_event(DaemonEvent::AgentSpawned { info: info("a", AgentState::Working) });
+        app.apply_event(DaemonEvent::AgentSpawned {
+            info: info("a", AgentState::Working),
+        });
         app.handle_key(key(KeyCode::Char('s')));
         app.handle_key(key(KeyCode::Char('x')));
         app.handle_key(key(KeyCode::Esc));
@@ -554,7 +593,9 @@ mod tests {
     #[test]
     fn kill_requires_confirmation() {
         let mut app = App::new();
-        app.apply_event(DaemonEvent::AgentSpawned { info: info("a", AgentState::Working) });
+        app.apply_event(DaemonEvent::AgentSpawned {
+            info: info("a", AgentState::Working),
+        });
         app.handle_key(key(KeyCode::Char('K')));
         assert_eq!(app.mode, Mode::ConfirmKill);
         app.handle_key(key(KeyCode::Char('n')));
@@ -593,16 +634,30 @@ mod tests {
     #[test]
     fn state_upgrade_matrix() {
         assert!(is_state_upgrade(&AgentState::Working, &AgentState::Blocked));
-        assert!(!is_state_upgrade(&AgentState::Blocked, &AgentState::Working));
-        assert!(is_state_upgrade(&AgentState::Working, &AgentState::Errored("x".into())));
-        assert!(!is_state_upgrade(&AgentState::Errored("x".into()), &AgentState::Working));
-        assert!(!is_state_upgrade(&AgentState::Exited(0), &AgentState::Working));
+        assert!(!is_state_upgrade(
+            &AgentState::Blocked,
+            &AgentState::Working
+        ));
+        assert!(is_state_upgrade(
+            &AgentState::Working,
+            &AgentState::Errored("x".into())
+        ));
+        assert!(!is_state_upgrade(
+            &AgentState::Errored("x".into()),
+            &AgentState::Working
+        ));
+        assert!(!is_state_upgrade(
+            &AgentState::Exited(0),
+            &AgentState::Working
+        ));
     }
 
     #[test]
     fn resync_clears_and_remembers_selection() {
         let mut app = App::new();
-        app.apply_event(DaemonEvent::AgentSpawned { info: info("a", AgentState::Working) });
+        app.apply_event(DaemonEvent::AgentSpawned {
+            info: info("a", AgentState::Working),
+        });
         app.select_agent("a");
         app.resync();
         assert!(app.agents.is_empty());

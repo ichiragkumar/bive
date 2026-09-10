@@ -142,7 +142,9 @@ pub fn spawn_agent(spec: SpawnSpec, ctx: SpawnContext) -> Result<PtyHandles> {
 
         let transition = registry
             .with_agent(&agent_id, |e| {
-                e.sm.lock().expect("state mutex").set_terminal(final_state.clone())
+                e.sm.lock()
+                    .expect("state mutex")
+                    .set_terminal(final_state.clone())
             })
             .flatten();
         if let Some(s) = transition {

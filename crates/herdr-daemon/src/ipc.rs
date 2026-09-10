@@ -20,7 +20,8 @@ use crate::supervisor::Supervisor;
 /// Remove a stale socket file left by a crashed daemon (verified dead by the caller).
 pub fn prepare_socket_path(path: &Path) -> Result<PathBuf> {
     if path.exists() {
-        std::fs::remove_file(path).with_context(|| format!("removing stale socket {}", path.display()))?;
+        std::fs::remove_file(path)
+            .with_context(|| format!("removing stale socket {}", path.display()))?;
     }
     if let Some(parent) = path.parent() {
         std::fs::create_dir_all(parent).ok();
@@ -166,9 +167,15 @@ async fn handle_connection(stream: UnixStream, supervisor: Arc<Supervisor>) -> R
 fn event_concerns(event: &DaemonEvent, agent_id: &str) -> bool {
     match event {
         DaemonEvent::AgentSpawned { info } => info.id == agent_id,
-        DaemonEvent::AgentOutput { agent_id: ev_id, .. }
-        | DaemonEvent::StateChange { agent_id: ev_id, .. }
-        | DaemonEvent::AgentExited { agent_id: ev_id, .. }
+        DaemonEvent::AgentOutput {
+            agent_id: ev_id, ..
+        }
+        | DaemonEvent::StateChange {
+            agent_id: ev_id, ..
+        }
+        | DaemonEvent::AgentExited {
+            agent_id: ev_id, ..
+        }
         | DaemonEvent::AgentRemoved { agent_id: ev_id } => ev_id == agent_id,
     }
 }

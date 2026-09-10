@@ -1,0 +1,9 @@
+# Rust build artifacts
+/target
+
+# Captures and local scratch
+*.raw
+/captures/
+
+# Editor / OS noise
+.DS_Store
