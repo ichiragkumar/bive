@@ -1,6 +1,12 @@
 # Phase 4 Spec — Remote Agents & SSH Bridge
 
-> Status: **Spec — not yet implemented**. Depends on: Phase 1 daemon + protocol. Introduces `herdr-remote` crate.
+> Status: **Implemented** (see README §Remote agents). One deviation from the design
+> below: the default transport is the user's `ssh` binary via a `SshTransport` trait
+> (`ProcessSshTransport`), not embedded russh — this buys real-world auth for free
+> (agent forwarding, known_hosts, ProxyJump). A russh backend can slot in behind the
+> same trait. All other contract points hold: frame-multiplexed single channel,
+> `herdr-agent` runner with auto-install (`~/.herdr/bin/herdr-agent`), local state
+> inference, tagged `host:agentid` ids, backoff reconnect with re-sync.
 
 ## Goal
 

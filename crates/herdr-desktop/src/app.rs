@@ -223,7 +223,10 @@ fn run_app() -> Result<(), Box<dyn std::error::Error>> {
             list_cmd,
             logs_cmd,
             ping_cmd,
-            snapshot_cmd
+            snapshot_cmd,
+            remote_list_cmd,
+            remote_add_cmd,
+            remote_remove_cmd
         ])
         .run(tauri::generate_context!())
         .map_err(|e| format!("tauri runtime error: {e}"))?;
@@ -266,13 +269,14 @@ fn spawn_agent_cmd(
     cwd: String,
     command: String,
     args: Vec<String>,
+    host: Option<String>,
 ) -> Result<String, String> {
     match state.bridge.request(ClientCommand::Spawn {
         profile,
         cwd,
         command,
         args,
-        host: None,
+        host,
     }) {
         Ok(Response::AgentCreated { agent_id }) => {
             resync(&state);
@@ -290,15 +294,23 @@ fn send_input_cmd(
     text: String,
     raw: bool,
 ) -> Result<(), String> {
-    state
+    let outcome = state
         .bridge
         .request(ClientCommand::SendInput {
-            agent_id,
-            text,
+            agent_id: agent_id.clone(),
+            text: text.clone(),
             raw,
         })
         .map(|_| ())
-        .map_err(map_err)
+        .map_err(map_err);
+    // Remember the submission so Chat segmentation reads its echo as a
+    // human turn. Only on success: unsent text never echoes back.
+    if outcome.is_ok() {
+        if let Ok(mut store) = state.store.lock() {
+            store.note_sent(&agent_id, text);
+        }
+    }
+    outcome
 }
 
 #[tauri::command]
@@ -370,14 +382,67 @@ fn ping_cmd(state: State<'_, DesktopState>) -> Result<bool, String> {
 }
 
 /// Full snapshot of the UI store for (re)hydration of the frontend.
+/// `chat` maps agent id → authoritative Chat turns (see `ui_state`); the
+/// frontend renders them and only appends live lines on top.
 #[tauri::command]
 fn snapshot_cmd(state: State<'_, DesktopState>) -> Result<serde_json::Value, String> {
     let store = state.store.lock().unwrap();
+    let cards = store.cards();
+    let chat: std::collections::HashMap<&str, Vec<crate::ui_state::ChatSegment>> = cards
+        .iter()
+        .map(|c| (c.info.id.as_str(), store.chat_segments(&c.info.id)))
+        .collect();
     serde_json::json!({
         "connected": store.connected,
-        "cards": store.cards(),
+        "cards": cards,
+        "chat": chat,
     })
     .pipe_ok()
+}
+
+/// Registered remote hosts with bridge state, for the sidebar. One-shot per
+/// snapshot/resync (not polling); live host-status events need a protocol
+/// change and are out of scope.
+#[tauri::command]
+fn remote_list_cmd(state: State<'_, DesktopState>) -> Result<serde_json::Value, String> {
+    match state.bridge.request(ClientCommand::RemoteList) {
+        Ok(Response::RemoteHostList { hosts }) => {
+            serde_json::to_value(hosts).map_err(|e| e.to_string())
+        }
+        Ok(other) => Err(format!("unexpected reply: {other:?}")),
+        Err(e) => Err(map_err(e)),
+    }
+}
+
+#[tauri::command]
+fn remote_add_cmd(
+    state: State<'_, DesktopState>,
+    name: String,
+    ssh_target: String,
+    port: u16,
+    user: Option<String>,
+) -> Result<(), String> {
+    state
+        .bridge
+        .request(ClientCommand::RemoteAdd {
+            host: herdr_protocol::RemoteHost {
+                name,
+                ssh_target,
+                port,
+                user,
+            },
+        })
+        .map(|_| ())
+        .map_err(map_err)
+}
+
+#[tauri::command]
+fn remote_remove_cmd(state: State<'_, DesktopState>, name: String) -> Result<(), String> {
+    state
+        .bridge
+        .request(ClientCommand::RemoteRemove { name })
+        .map(|_| ())
+        .map_err(map_err)
 }
 
 trait PipeOk<T> {

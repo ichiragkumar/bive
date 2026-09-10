@@ -1,0 +1,11 @@
+/* Topbar: conn dot, title, fleet aggregate, kill-all. */
+#topbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+}
+#topbar h1 { font-size: 15px; margin: 0; }
+#btn-side { padding: 5px 9px; }

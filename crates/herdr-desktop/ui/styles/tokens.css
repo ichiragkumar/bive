@@ -1,0 +1,156 @@
+/* herdr desktop — design tokens. Void/Panel/Signal/Mist base; the agent
+   state colors are the entire accent system (no arbitrary brand color).
+   IBM Plex Mono = headlines/data, IBM Plex Sans = body. */
+@font-face {
+  font-family: "IBM Plex Sans";
+  src: url("../fonts/IBMPlexSans-Regular.ttf") format("truetype");
+  font-weight: 400; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: "IBM Plex Sans";
+  src: url("../fonts/IBMPlexSans-Medium.ttf") format("truetype");
+  font-weight: 500; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: "IBM Plex Sans";
+  src: url("../fonts/IBMPlexSans-SemiBold.ttf") format("truetype");
+  font-weight: 600; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: "IBM Plex Sans";
+  src: url("../fonts/IBMPlexSans-Bold.ttf") format("truetype");
+  font-weight: 700; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: "IBM Plex Mono";
+  src: url("../fonts/IBMPlexMono-Regular.woff2") format("woff2");
+  font-weight: 400; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: "IBM Plex Mono";
+  src: url("../fonts/IBMPlexMono-Medium.woff2") format("woff2");
+  font-weight: 500; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: "IBM Plex Mono";
+  src: url("../fonts/IBMPlexMono-SemiBold.woff2") format("woff2");
+  font-weight: 600; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: "IBM Plex Mono";
+  src: url("../fonts/IBMPlexMono-Bold.woff2") format("woff2");
+  font-weight: 700; font-style: normal; font-display: swap;
+}
+
+:root {
+  /* Base */
+  --void: #0A0D10;
+  --void-2: #0E1216;
+  --panel: #12161B;
+  --panel-2: #171D23;
+  --panel-3: #1D242B;
+
+  /* Text: Signal primary, Mist muted */
+  --text: #E7EBEE;
+  --text-soft: #B6BEC7;
+  --text-muted: #8A929B;
+  --text-faint: #5E6873;
+
+  /* Lines */
+  --border: rgba(231, 235, 238, 0.10);
+  --border-strong: rgba(231, 235, 238, 0.18);
+
+  /* State colors double as the accent system */
+  --working: #4FA8FF;
+  --blocked: #F5A623;
+  --errored: #FF5C5C;
+  --exited: #37D399;
+  --idle: #8A929B;
+
+  /* Interactive accent (focus, selection): active blue */
+  --accent: #4FA8FF;
+
+  --glow-blue: rgba(79, 168, 255, 0.24);
+  --glow-green: rgba(55, 211, 153, 0.20);
+  --glow-red: rgba(255, 92, 92, 0.20);
+
+  --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", "SFMono-Regular", Menlo, Consolas, monospace;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.45;
+  background: var(--void);
+  color: var(--text);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+h1, h2, h3 {
+  font-family: var(--font-mono);
+  font-weight: 600;
+}
+.muted { color: var(--text-muted); }
+.spacer { flex: 1; }
+.dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; flex: none; }
+.dot.gray { background: var(--text-faint); }
+.dot.green { background: var(--working); }
+.dot.amber { background: var(--blocked); }
+.dot.red { background: var(--errored); }
+.dot.connected { background: var(--working); box-shadow: 0 0 6px var(--glow-blue); }
+
+button {
+  background: var(--panel-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 5px 12px;
+  cursor: pointer;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 500;
+}
+button:hover { border-color: var(--accent); }
+button.danger:hover { border-color: var(--errored); color: var(--errored); }
+button.ghost { background: none; border-style: dashed; }
+select, input {
+  background: var(--void-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 5px 8px;
+  font-family: var(--font-sans);
+}
+
+.terminal, .metric, .command {
+  font-variant-numeric: tabular-nums;
+}
+
+#layout {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 240px 340px 1fr;
+  min-height: 0;
+}
+
+/* Narrow windows: sidebar becomes a toggleable drawer. */
+body.no-side #layout { grid-template-columns: 0 340px 1fr; }
+body.no-side #sidebar { display: none; }
+@media (max-width: 1080px) {
+  #layout { grid-template-columns: 0 300px 1fr; }
+  #sidebar { display: none; }
+}
+
+.fatal {
+  margin: 24px;
+  padding: 16px 20px;
+  border: 1px solid var(--blocked);
+  border-radius: 10px;
+  background: var(--panel);
+  max-width: 640px;
+  font-family: var(--font-sans);
+}

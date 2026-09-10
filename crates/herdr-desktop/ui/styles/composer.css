@@ -1,0 +1,9 @@
+/* Composer: single send bar below the detail tabs. */
+#composer-bar {
+  display: flex;
+  gap: 8px;
+  padding: 10px 14px;
+  border-top: 1px solid var(--border);
+  background: var(--panel);
+}
+#composer { flex: 1; }

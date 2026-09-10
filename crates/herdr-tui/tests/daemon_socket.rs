@@ -14,6 +14,7 @@ use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
 
 use herdr_protocol::{AgentState, ClientCommand, DaemonEvent, Response};
+use herdr_tui::app::ConnState;
 use herdr_tui::client::HerdrClient;
 use herdr_tui::App;
 
@@ -32,6 +33,12 @@ struct TestDaemon {
 impl TestDaemon {
     fn boot() -> Self {
         let tmp = tempfile::TempDir::new().expect("tempdir");
+        Self::boot_in(tmp)
+    }
+
+    /// Boot a daemon on `tmp/test.sock` with a fresh runtime. Used for the
+    /// initial boot and for reboots on the same path after a simulated crash.
+    fn boot_in(tmp: tempfile::TempDir) -> Self {
         let sock = tmp.path().join("test.sock");
         let rt = tokio::runtime::Builder::new_multi_thread()
             .worker_threads(2)
@@ -54,6 +61,16 @@ impl TestDaemon {
             sock,
             tmp,
         }
+    }
+
+    /// Simulate a crash mid-session: tear down the whole runtime without the
+    /// graceful shutdown path, so client connections hit EOF and the stale
+    /// socket file is left behind — exactly what a real `kill -9` leaves.
+    /// Returns the tempdir so the test can reboot on the same socket path.
+    fn crash(self) -> tempfile::TempDir {
+        self.handle.abort();
+        self.rt.shutdown_background();
+        self.tmp
     }
 }
 
@@ -262,4 +279,124 @@ fn connect_fails_cleanly_without_daemon() {
     std::env::remove_var("XDG_RUNTIME_DIR");
     let result = HerdrClient::connect();
     assert!(result.is_err());
+}
+
+#[test]
+fn tui_client_resync_restores_fleet_view_after_daemon_restart() {
+    // Kill the daemon mid-session (crash, not graceful shutdown), reboot it on
+    // the same socket path, and assert the TUI client's resync restores the
+    // fleet view: no ghosts from the dead session, new fleet visible.
+    // Mirrors the reconnect path in `herdr-tui`'s main loop step by step
+    // (Reconnecting banner → `reconnect()` → `resync()` → List + Events).
+
+    // -- live session on daemon A -------------------------------------------
+    let daemon = TestDaemon::boot();
+    let sock = daemon.sock.clone();
+    let mut client = HerdrClient::connect_to(&sock).expect("client connects");
+    let event_rx = client.start_reader();
+
+    // Initial sync, exactly like the TUI main loop on startup.
+    let mut app = App::new();
+    let resp = client.request(ClientCommand::List).expect("List");
+    app.apply_response(resp);
+    assert!(app.agents.is_empty(), "fresh daemon has no agents");
+    let resp = client.request(ClientCommand::Events).expect("Events ack");
+    app.apply_response(resp);
+
+    // One live agent in the fleet view.
+    let marker_a = format!("reconnect-a-{}", std::process::id());
+    let cwd = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../target/debug");
+    let agent_a = spawn_echo_agent(&client, &marker_a, &cwd);
+    let events = wait_for_event(
+        &event_rx,
+        |ev| matches!(ev, DaemonEvent::AgentSpawned { info } if info.id == agent_a),
+        Instant::now() + Duration::from_secs(5),
+    );
+    app.apply_event(events.last().unwrap().clone());
+    assert_eq!(app.order, vec![agent_a.clone()]);
+    assert!(app.agents.contains_key(&agent_a));
+
+    // -- crash daemon A mid-session (no graceful shutdown) -------------------
+    let tmp = daemon.crash();
+
+    // The TUI client must notice the dead socket (reader thread hits EOF).
+    let deadline = Instant::now() + Duration::from_secs(5);
+    while client.is_connected() {
+        assert!(
+            Instant::now() < deadline,
+            "client never noticed the daemon died"
+        );
+        std::thread::sleep(Duration::from_millis(10));
+    }
+    // The main loop raises the reconnecting banner while disconnected.
+    app.connection_state = ConnState::Reconnecting;
+    assert_eq!(app.connection_state, ConnState::Reconnecting);
+
+    // -- reboot daemon B on the same socket path ------------------------------
+    // A crash leaves a stale socket file; the restart replaces it, mirroring
+    // what `herdr daemon` does via `prepare_socket_path`.
+    assert!(sock.exists(), "crash leaves a stale socket file behind");
+    herdr_daemon::ipc::prepare_socket_path(&sock).expect("replace stale socket");
+    assert!(!sock.exists(), "stale socket removed before reboot");
+    let daemon = TestDaemon::boot_in(tmp);
+
+    // Reconnect (retried; the rebooted daemon binds fast).
+    let deadline = Instant::now() + Duration::from_secs(10);
+    while !client.is_connected() {
+        assert!(
+            Instant::now() < deadline,
+            "client never reconnected to the rebooted daemon"
+        );
+        client.reconnect();
+    }
+
+    // -- resync, exactly like the TUI main loop after reconnect ---------------
+    app.connection_state = ConnState::Connected;
+    app.resync();
+    let resp = client
+        .request(ClientCommand::List)
+        .expect("List after restart");
+    app.apply_response(resp);
+    let resp = client.request(ClientCommand::Events).expect("re-subscribe");
+    app.apply_response(resp);
+
+    // Agents died with daemon A: resync must leave no ghosts behind.
+    assert!(
+        app.agents.is_empty(),
+        "stale agents cleared by resync, got: {:?}",
+        app.order
+    );
+    assert!(app.order.is_empty());
+    assert_eq!(app.selected_id(), None);
+
+    // The rebooted daemon serves a new fleet, visible after resync.
+    let marker_b = format!("reconnect-b-{}", std::process::id());
+    let agent_b = spawn_echo_agent(&client, &marker_b, &cwd);
+    let events = wait_for_event(
+        &event_rx,
+        |ev| matches!(ev, DaemonEvent::AgentSpawned { info } if info.id == agent_b),
+        Instant::now() + Duration::from_secs(5),
+    );
+    app.apply_event(events.last().unwrap().clone());
+    let resp = client.request(ClientCommand::List).expect("List new fleet");
+    app.apply_response(resp);
+    assert_eq!(
+        app.order,
+        vec![agent_b.clone()],
+        "resync restores the fleet view from List"
+    );
+    assert!(app.agents.contains_key(&agent_b));
+    assert_eq!(app.selected_id(), Some(agent_b.as_str()));
+
+    // -- clean shutdown of the rebooted daemon ---------------------------------
+    let resp = client.request(ClientCommand::Shutdown).expect("Shutdown");
+    assert!(matches!(resp, Response::Ok));
+    let daemon_result = daemon
+        .rt
+        .block_on(async { daemon.handle.await.expect("join") });
+    assert!(
+        daemon_result.is_ok(),
+        "rebooted daemon exits cleanly: {daemon_result:?}"
+    );
+    assert!(!daemon.sock.exists(), "daemon removes its socket file");
 }

@@ -1,0 +1,3 @@
+IBM Plex Sans + IBM Plex Mono (SIL Open Font License 1.1).
+Sources: Google Fonts (gstatic.com) + IBM Plex project. Committed locally so
+the Tauri app and the static preview work offline; do not hotlink.

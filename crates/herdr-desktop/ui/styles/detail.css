@@ -1,0 +1,98 @@
+/* Detail pane: persistent panel with Chat/Terminal/Info tabs. */
+#detail-pane {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+}
+#detail-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+  background: var(--panel);
+}
+#detail-header h2 {
+  margin: 0;
+  font-size: 13px;
+  font-family: var(--font-mono);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tabs { display: flex; gap: 4px; margin-left: 8px; }
+.tab { font-family: var(--font-mono); font-size: 12px; }
+.tab.active { border-color: var(--accent); color: var(--accent); }
+#detail-header #detail-copy { margin-left: auto; }
+.tab-panel { flex: 1; overflow-y: auto; min-height: 0; padding: 12px 14px; }
+.tab-panel[hidden] { display: none; }
+
+/* Chat turns: human blue, tool amber, agent neutral. */
+#chat-media { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 10px; }
+#chat-media:empty { display: none; }
+#chat-media img {
+  max-width: 300px;
+  max-height: 220px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+#chat-media figure { margin: 0; }
+#chat-media figcaption { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+.turn {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 10px;
+  margin-bottom: 8px;
+  background: var(--panel);
+}
+.turn .who {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+.turn.human { border-left: 3px solid var(--working); }
+.turn.tool { border-left: 3px solid var(--blocked); }
+.turn pre {
+  margin: 4px 0 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.55;
+}
+.chat-notice { color: var(--text-muted); padding: 20px 4px; }
+
+/* Terminal tab */
+.log {
+  margin: 0;
+  padding: 10px;
+  background: var(--void);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  min-height: 100%;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.55;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Info tab */
+#detail-info-list {
+  display: grid;
+  grid-template-columns: 140px 1fr;
+  gap: 6px 12px;
+  margin: 0;
+}
+#detail-info-list dt { color: var(--text-muted); font-family: var(--font-mono); font-size: 12px; }
+#detail-info-list dd {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  word-break: break-all;
+}

@@ -4,47 +4,89 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>herdr — agent fleet</title>
-    <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="styles/tokens.css" />
+    <link rel="stylesheet" href="styles/topbar.css" />
+    <link rel="stylesheet" href="styles/sidebar.css" />
+    <link rel="stylesheet" href="styles/agent-list.css" />
+    <link rel="stylesheet" href="styles/detail.css" />
+    <link rel="stylesheet" href="styles/composer.css" />
   </head>
   <body>
     <header id="topbar">
+      <button id="btn-side" title="toggle sidebar">☰</button>
       <span id="conn-dot" class="dot gray" title="daemon connection"></span>
       <h1>herdr</h1>
+      <span id="fleet-dot" class="dot gray"></span>
       <span id="fleet-summary" class="muted">no agents</span>
       <span class="spacer"></span>
-      <label for="filter">filter:</label>
-      <select id="filter">
-        <option value="all">all</option>
-        <option value="Working">working</option>
-        <option value="Blocked">blocked</option>
-        <option value="Idle">idle</option>
-        <option value="Errored">errored</option>
-      </select>
-      <button id="btn-spawn">+ shell</button>
       <button id="btn-kill-all" class="danger">kill all</button>
     </header>
 
-    <main id="fleet" class="cards"></main>
+    <div id="layout">
+      <aside id="sidebar">
+        <section>
+          <h2>Hosts</h2>
+          <ul id="host-list"></ul>
+          <button id="btn-add-remote" class="ghost">+ remote</button>
+        </section>
+        <section>
+          <h2>Spawn</h2>
+          <label for="profile-picker">profile:</label>
+          <select id="profile-picker">
+            <option value="generic">generic</option>
+            <option value="claude-code">claude-code</option>
+            <option value="codex">codex</option>
+            <option value="bash">bash</option>
+          </select>
+          <button id="btn-spawn">+ spawn</button>
+        </section>
+        <section>
+          <h2>Filter</h2>
+          <label for="filter">state:</label>
+          <select id="filter">
+            <option value="all">all</option>
+            <option value="Working">working</option>
+            <option value="Blocked">blocked</option>
+            <option value="Idle">idle</option>
+            <option value="Errored">errored</option>
+          </select>
+        </section>
+      </aside>
 
-    <dialog id="detail">
-      <article>
-        <header>
-          <h2 id="detail-title">agent</h2>
-          <button class="close" id="detail-close">×</button>
-        </header>
-        <div id="detail-actions">
+      <section id="agent-list-pane">
+        <ul id="agent-list"></ul>
+      </section>
+
+      <section id="detail-pane">
+        <header id="detail-header">
+          <h2 id="detail-title">no agent selected</h2>
+          <div class="tabs" role="tablist">
+            <button class="tab" data-tab="chat" role="tab">Chat</button>
+            <button class="tab" data-tab="terminal" role="tab">Terminal</button>
+            <button class="tab" data-tab="info" role="tab">Info</button>
+          </div>
           <button id="detail-copy">copy id</button>
           <button id="detail-kill" class="danger">kill agent</button>
+        </header>
+        <div id="tab-chat" class="tab-panel">
+          <div id="chat-media"></div>
+          <div id="chat-turns"></div>
         </div>
-        <section id="detail-media"></section>
-        <pre id="detail-log" class="log"></pre>
-        <footer>
+        <div id="tab-terminal" class="tab-panel">
+          <pre id="detail-log" class="log"></pre>
+        </div>
+        <div id="tab-info" class="tab-panel">
+          <dl id="detail-info-list"></dl>
+        </div>
+        <footer id="composer-bar">
           <input id="composer" placeholder="send input to agent…" />
           <button id="composer-send">send</button>
         </footer>
-      </article>
-    </dialog>
+      </section>
+    </div>
 
-    <script src="app.js"></script>
+    <div id="fatal" class="fatal" hidden></div>
+
+    <script type="module" src="dist/bundle.js"></script>
   </body>
 </html>
